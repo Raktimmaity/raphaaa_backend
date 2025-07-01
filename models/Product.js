@@ -1,10 +1,10 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
     },
     description: {
         type: String,
@@ -83,8 +83,8 @@ const productSchema = new mongoose.Schema({
     tags: [String],
     user: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        ref: "User",
+        required: true,
     },
     metaTitle: {
         type: String,
@@ -93,7 +93,7 @@ const productSchema = new mongoose.Schema({
         type: String,
     },
     metaKeywords: {
-        type: [String],
+        type: String,
     },
     dimensions: {
         length: Number,
@@ -101,8 +101,8 @@ const productSchema = new mongoose.Schema({
         height: Number,
     },
     weight: Number,
-    },
-    { timestamps: true }
+},
+{timestamps: true}
 );
 
-module.exports = mongoose.model('Product', productSchema);
+module.exports = mongoose.model("Product", productSchema);

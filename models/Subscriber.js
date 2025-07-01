@@ -8,7 +8,7 @@ const subscriberSchema = new mongoose.Schema({
         trim: true,
         lowercase: true,
     },
-    subscribeAt: {
+    subscribedAt: {
         type: Date,
         default: Date.now,
     },
