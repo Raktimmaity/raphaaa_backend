@@ -48,6 +48,7 @@ const protect = async (req, res, next) => {
     ) {
         try {
             token = req.headers.authorization.split(" ")[1];
+            const authParts = req.headers.authorization.split(" ");
             
             // Debug logging
             console.log('Auth header:', req.headers.authorization);
