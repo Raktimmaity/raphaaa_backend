@@ -1,39 +1,39 @@
-// const jwt = require("jsonwebtoken");
-// const User = require("../models/User");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
-// // Middleware to protect routes
-// const protect = async (req, res, next) => {
-//     let token;
+// Middleware to protect routes
+const protect = async (req, res, next) => {
+    let token;
 
-//     if(
-//         req.headers.authorization &&
-//         req.headers.authorization.startsWith("Bearer")
-//     ) {
-//         try {
-//             token = req.headers.authorization.split(" ")[1];
-//             const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if(
+        req.headers.authorization &&
+        req.headers.authorization.startsWith("Bearer")
+    ) {
+        try {
+            token = req.headers.authorization.split(" ")[1];
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-//             req.user = await User.findById(decoded.user.id).select("-password"); // Exclude password
-//             next();
-//         } catch (error) {
-//             console.error("Token verification failed:", error);
-//             res.status(401).json({ message: "Not authorized, token failed" });
-//         }
-//     } else {
-//         res.status(401).json({ message: "Not authorized, no token provided" });
-//     }
-// };
+            req.user = await User.findById(decoded.user.id).select("-password"); // Exclude password
+            next();
+        } catch (error) {
+            console.error("Token verification failed:", error);
+            res.status(401).json({ message: "Not authorized, token failed" });
+        }
+    } else {
+        res.status(401).json({ message: "Not authorized, no token provided" });
+    }
+};
 
-// // Middleware to check if the user is an admin
-// const admin = (req, res, next) => {
-//     if(req.user && req.user.role === "admin") {
-//         next();
-//     } else {
-//         res.status(403).json({message: "Not authorized as an admin"});
-//     }
-// };
+// Middleware to check if the user is an admin
+const admin = (req, res, next) => {
+    if(req.user && req.user.role === "admin") {
+        next();
+    } else {
+        res.status(403).json({message: "Not authorized as an admin"});
+    }
+};
 
-// module.exports = { protect, admin };
+module.exports = { protect, admin };
 
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
@@ -48,26 +48,8 @@ const protect = async (req, res, next) => {
     ) {
         try {
             token = req.headers.authorization.split(" ")[1];
-            const authParts = req.headers.authorization.split(" ");
             
-            // Debug logging
-            console.log('Auth header:', req.headers.authorization);
-            console.log('Auth parts:', authParts);
-            
-            // Validate format
-            if (authParts.length !== 2) {
-                return res.status(401).json({ 
-                    message: "Invalid authorization header format. Expected: 'Bearer <token>'" 
-                });
-            }
-            
-            token = authParts[1];
-            
-            // Check if token exists
-            if (!token || token === 'null' || token === 'undefined') {
-                return res.status(401).json({ message: "No token provided" });
-            }
-            
+            // Debug logging (remove in production)
             console.log('Token received:', token);
             
             // Check if token exists and has proper format
@@ -76,9 +58,9 @@ const protect = async (req, res, next) => {
             }
             
             // Verify token has 3 parts (header.payload.signature)
-            // if (token.split('.').length !== 3) {
-            //     return res.status(401).json({ message: "Invalid token format" });
-            // }
+            if (token.split('.').length !== 3) {
+                return res.status(401).json({ message: "Invalid token format" });
+            }
             
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             console.log('Decoded token:', decoded); // Debug logging
