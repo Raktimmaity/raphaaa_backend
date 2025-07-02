@@ -15,11 +15,12 @@ const adminOrderRoutes = require("./routes/adminOrderRoutes");
 
 const app = express();
 app.use(express.json());
-app.use(cors({
-  origin: "https://raphaaa.onrender.com", // change to your frontend URL
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+// app.use(cors({
+//   origin: "http://localhost:9000", // change to your frontend URL
+//   methods: ["GET", "POST", "PUT", "DELETE"],
+//   allowedHeaders: ["Content-Type", "Authorization"],
+// }));
+app.use(cors());
 
 dotenv.config();
 
