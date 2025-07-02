@@ -49,7 +49,24 @@ const protect = async (req, res, next) => {
         try {
             token = req.headers.authorization.split(" ")[1];
             
-            // Debug logging (remove in production)
+            // Debug logging
+            console.log('Auth header:', req.headers.authorization);
+            console.log('Auth parts:', authParts);
+            
+            // Validate format
+            if (authParts.length !== 2) {
+                return res.status(401).json({ 
+                    message: "Invalid authorization header format. Expected: 'Bearer <token>'" 
+                });
+            }
+            
+            token = authParts[1];
+            
+            // Check if token exists
+            if (!token || token === 'null' || token === 'undefined') {
+                return res.status(401).json({ message: "No token provided" });
+            }
+            
             console.log('Token received:', token);
             
             // Check if token exists and has proper format
