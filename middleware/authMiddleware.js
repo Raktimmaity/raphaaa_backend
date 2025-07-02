@@ -58,9 +58,9 @@ const protect = async (req, res, next) => {
             }
             
             // Verify token has 3 parts (header.payload.signature)
-            if (token.split('.').length !== 3) {
-                return res.status(401).json({ message: "Invalid token format" });
-            }
+            // if (token.split('.').length !== 3) {
+            //     return res.status(401).json({ message: "Invalid token format" });
+            // }
             
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             console.log('Decoded token:', decoded); // Debug logging
