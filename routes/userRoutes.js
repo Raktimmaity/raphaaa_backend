@@ -100,4 +100,40 @@ router.get("/profile", protect, async (req, res) => {
     res.json(req.user);
 });
 
+// @route PUT /api/users/profile
+// @desc Update user profile (Protected)
+// @access Private
+router.put("/profile", protect, async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
+
+    if (req.body.password) {
+      user.password = req.body.password; // Will be hashed by model pre-save
+    }
+
+    const updatedUser = await user.save();
+
+    const payload = { user: { id: updatedUser._id, role: updatedUser.role } };
+    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "40h" }, (err, token) => {
+      if (err) throw err;
+
+      res.json({
+        user: {
+          _id: updatedUser._id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+        },
+        token,
+      });
+    });
+  } else {
+    res.status(404).json({ message: "User not found" });
+  }
+});
+
+
 module.exports = router;
