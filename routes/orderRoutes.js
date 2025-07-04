@@ -50,6 +50,7 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
+const Product = require("../models/Product");
 const { protect } = require('../middleware/authMiddleware');
 
 // @desc    Create Cash on Delivery Order
@@ -100,6 +101,16 @@ router.post('/cod', protect, async (req, res) => {
     });
 
     const createdOrder = await order.save();
+    
+    // 🔻 Decrease stock for each ordered product
+    for (const item of orderItems) {
+      const product = await Product.findById(item.productId);
+      if (product) {
+        product.countInStock -= item.quantity;
+        if (product.countInStock < 0) product.countInStock = 0;
+        await product.save();
+      }
+    }
 
     // Clear cart after placing the order
     await Cart.findOneAndUpdate(
