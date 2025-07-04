@@ -1,6 +1,8 @@
 const express = require("express");
 const Product = require("../models/Product");
 const { protect, admin } = require("../middleware/authMiddleware");
+const Review = require("../models/Review");
+
 
 const router = express.Router();
 
@@ -315,5 +317,51 @@ router.get("/:id", async(req, res) => {
         res.status(500).send("Internal server error");
     }
 });
+
+// @route POST /api/products/:productId/reviews
+// @desc Submit a product review
+// @access Private
+router.post("/:productId/reviews", protect, async (req, res) => {
+  try {
+    const { rating, comment, image } = req.body;
+    const { productId } = req.params;
+
+    // Prevent duplicate reviews by the same user (optional)
+    const existingReview = await Review.findOne({
+      product: productId,
+      user: req.user._id,
+    });
+
+    if (existingReview) {
+      return res.status(400).json({ message: "You already reviewed this product" });
+    }
+
+    const review = new Review({
+      product: productId,
+      user: req.user._id,
+      rating,
+      comment,
+      image,
+    });
+
+    await review.save();
+
+    // Recalculate product stats
+    const allReviews = await Review.find({ product: productId });
+    const avgRating =
+      allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
+
+    await Product.findByIdAndUpdate(productId, {
+      numReviews: allReviews.length,
+      rating: avgRating,
+    });
+
+    res.status(201).json({ message: "Review submitted", review });
+  } catch (err) {
+    console.error("Review submission error:", err);
+    res.status(500).json({ message: "Failed to submit review", error: err.message });
+  }
+});
+
 
 module.exports = router;
