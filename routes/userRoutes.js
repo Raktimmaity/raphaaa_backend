@@ -96,14 +96,14 @@ router.post("/login", async (req, res) => {
 // @route GET /api/users/profile
 // @desc Get the logged-in user's profile (Protected Route)
 // @access Private
-// router.get("/profile", protect, async (req, res) => {
-//     res.json(req.user);
-// });
+router.get("/profile", protect, async (req, res) => {
+    res.json(req.user);
+});
 
 // @route PUT /api/users/profile
 // @desc Update user profile (Protected)
 // @access Private
-router.put("/profile", protect, async (req, res) => {
+router.put("/update-profile", protect, async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (user) {
