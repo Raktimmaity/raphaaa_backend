@@ -49,6 +49,9 @@ app.use("/api/admin/products", productAdminRoutes);
 app.use("/api/admin/orders", adminOrderRoutes);
 app.use("/api/merch", merchRoutes);
 
-app.listen(PORT, () => {
-    console.log(`Server is running on https://localhost:${PORT}`);
-});
+// app.listen(PORT, () => {
+//     console.log(`Server is running on https://localhost:${PORT}`);
+// });
+
+const serverless = require("serverless-http");
+module.exports.handler = serverless(app);
