@@ -33,6 +33,7 @@
     "multer": "^2.0.1",
     "nodemon": "^3.1.10",
     "react-redux": "^9.2.0",
+    "serverless-http": "^3.2.0",
     "streamifier": "^0.1.1"
   }
 }

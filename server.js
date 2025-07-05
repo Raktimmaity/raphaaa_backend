@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
+const serverless = require("serverless-http");
+
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const cartRoutes = require("./routes/cartRoutes");
@@ -14,31 +16,22 @@ const productAdminRoutes = require("./routes/productAdminRoutes");
 const adminOrderRoutes = require("./routes/adminOrderRoutes");
 const merchRoutes = require("./routes/merchRoutes");
 
-const corsConfig = {
-    origin: "*",
-    Credential: true,
-    methods: ["GET", "POST", "PUT", "DELETE"] ,
-};
+dotenv.config();
+connectDB();
 
 const app = express();
 app.use(express.json());
-// app.use(cors({
-//   origin: "http://localhost:9000", // change to your frontend URL
-//   methods: ["GET", "POST", "PUT", "DELETE"],
-//   allowedHeaders: ["Content-Type", "Authorization"],
-// }));
-app.options("", cors(corsConfig));
+
+const corsConfig = {
+  origin: "*",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+};
 app.use(cors(corsConfig));
-
-dotenv.config();
-
-const PORT = process.env.PORT || 3000;
-
-// Connect to the MongoDB database
-connectDB();
+app.options("*", cors(corsConfig));
 
 app.get("/", (req, res) => {
-    res.send("Welcome tp Raphaaa API!!");
+  res.send("Welcome to Raphaaa API!!");
 });
 
 // API Routes 
@@ -49,13 +42,11 @@ app.use("/api/checkout", checkoutRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api", subscriberRoutes);
-
-// Admin routes
 app.use("/api/admin/users", adminRoutes);
 app.use("/api/admin/products", productAdminRoutes);
 app.use("/api/admin/orders", adminOrderRoutes);
 app.use("/api/merch", merchRoutes);
 
-app.listen(PORT, () => {
-    console.log(`Server is running on https://localhost:${PORT}`);
-});
+// ❌ REMOVE app.listen()
+// ✅ Export as serverless function
+module.exports = serverless(app);
