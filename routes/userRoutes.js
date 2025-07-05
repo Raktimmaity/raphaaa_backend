@@ -104,21 +104,48 @@ router.get("/profile", protect, async (req, res) => {
 // @desc Update user profile (Protected)
 // @access Private
 router.put("/update-profile", protect, async (req, res) => {
-  const user = await User.findById(req.user._id);
+  try {
+    // ✅ Enhanced validation
+    const { name, email, password } = req.body;
+    
+    // Check if required fields are provided
+    if (!name || !email) {
+      return res.status(400).json({ message: "Name and email are required" });
+    }
 
-  if (user) {
-    user.name = req.body.name || user.name;
-    user.email = req.body.email || user.email;
+    const user = await User.findById(req.user._id);
 
-    if (req.body.password) {
-      user.password = req.body.password; // Will be hashed by model pre-save
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // ✅ Check if email is already taken by another user
+    if (email !== user.email) {
+      const emailExists = await User.findOne({ email, _id: { $ne: user._id } });
+      if (emailExists) {
+        return res.status(400).json({ message: "Email already in use by another user" });
+      }
+    }
+
+    // Update user fields
+    user.name = name;
+    user.email = email;
+
+    // ✅ Only update password if provided and not empty
+    if (password && password.trim() !== "") {
+      user.password = password; // Will be hashed by model pre-save
     }
 
     const updatedUser = await user.save();
 
+    // ✅ Enhanced JWT payload and error handling
     const payload = { user: { id: updatedUser._id, role: updatedUser.role } };
+    
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "40h" }, (err, token) => {
-      if (err) throw err;
+      if (err) {
+        console.error("JWT Sign Error:", err);
+        return res.status(500).json({ message: "Error generating token" });
+      }
 
       res.json({
         user: {
@@ -130,10 +157,23 @@ router.put("/update-profile", protect, async (req, res) => {
         token,
       });
     });
-  } else {
-    res.status(404).json({ message: "User not found" });
+
+  } catch (error) {
+    console.error("Update profile error:", error);
+    
+    // ✅ Enhanced error handling
+    if (error.code === 11000) {
+      // MongoDB duplicate key error
+      return res.status(400).json({ message: "Email already exists" });
+    }
+    
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ message: messages.join(', ') });
+    }
+    
+    res.status(500).json({ message: "Internal server error" });
   }
 });
-
 
 module.exports = router;
