@@ -17,7 +17,7 @@ const merchRoutes = require("./routes/merchRoutes");
 const corsConfig = {
     origin: "*",
     Credential: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE"] ,
 };
 
 const app = express();
