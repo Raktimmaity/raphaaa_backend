@@ -14,6 +14,12 @@ const productAdminRoutes = require("./routes/productAdminRoutes");
 const adminOrderRoutes = require("./routes/adminOrderRoutes");
 const merchRoutes = require("./routes/merchRoutes");
 
+const corsConfig = {
+    origin: "*",
+    Credential: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+};
+
 const app = express();
 app.use(express.json());
 // app.use(cors({
@@ -21,7 +27,8 @@ app.use(express.json());
 //   methods: ["GET", "POST", "PUT", "DELETE"],
 //   allowedHeaders: ["Content-Type", "Authorization"],
 // }));
-app.use(cors());
+app.options("", cors(corsConfig));
+app.use(cors(corsConfig));
 
 dotenv.config();
 
