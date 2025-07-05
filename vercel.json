@@ -3,7 +3,7 @@
     "name": "backend",
     "functions": {
         "server.js": {
-            "runtime": "@vercel/node@3"
+            "runtime": "@vercel/node@20.x"
         }
     },
     "routes": [
