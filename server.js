@@ -12,7 +12,8 @@ const subscriberRoutes = require("./routes/subscriberRoute");
 const adminRoutes = require("./routes/adminRoutes");
 const productAdminRoutes = require("./routes/productAdminRoutes");
 const adminOrderRoutes = require("./routes/adminOrderRoutes");
-const merchRoutes = require("./routes/merchRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+// const merchRoutes = require("./routes/merchRoutes");
 
 const corsConfig = {
     origin: "*",
@@ -49,12 +50,13 @@ app.use("/api/checkout", checkoutRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api", subscriberRoutes);
+app.use("/api/payment", paymentRoutes);
 
 // Admin routes
 app.use("/api/admin/users", adminRoutes);
 app.use("/api/admin/products", productAdminRoutes);
 app.use("/api/admin/orders", adminOrderRoutes);
-app.use("/api/merch", merchRoutes);
+// app.use("/api/merch", merchRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server is running on https://localhost:${PORT}`);
