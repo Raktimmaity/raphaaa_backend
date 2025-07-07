@@ -58,13 +58,166 @@
 
 // module.exports = router;
 
+// const express = require('express');
+// const router = express.Router();
+// const Order = require('../models/Order');
+// const { protect, adminOrMerchantise } = require('../middleware/authMiddleware');
+
+// // Middleware to check if user is admin
+// const admin = (req, res, next) => {
+//   if (req.user && req.user.role === 'admin') {
+//     next();
+//   } else {
+//     res.status(403).json({ message: 'Not authorized as admin' });
+//   }
+// };
+
+// // @desc    Get all orders (Admin only)
+// // @route   GET /api/admin/orders
+// // @access  Private/Admin
+// router.get('/', protect, admin, async (req, res) => {
+//   try {
+//     const orders = await Order.find({})
+//       .populate('user', 'name email')
+//       .populate('orderItems.productId', 'name image')
+//       .sort({ createdAt: -1 });
+
+      
+
+//     console.log('Admin fetching orders, found:', orders.length);
+//     res.json(orders);
+//   } catch (error) {
+//     console.error('Fetch all orders error:', error);
+//     res.status(500).json({
+//       message: 'Failed to fetch orders',
+//       error: error.message
+//     });
+//   }
+// });
+
+// // @desc    Update order status (Admin only)
+// // @route   PUT /api/admin/orders/:id
+// // @access  Private/Admin
+// router.put('/:id', protect, admin, async (req, res) => {
+//   try {
+//     const { status, paymentStatus } = req.body;
+//     const order = await Order.findById(req.params.id)
+//       .populate('user', 'name email');
+
+//     if (!order) {
+//       return res.status(404).json({ message: 'Order not found' });
+//     }
+
+//     if (status) {
+//       order.status = status;
+
+//       if (status === 'Delivered') {
+//         order.isDelivered = true;
+//         order.deliveredAt = Date.now();
+
+//         if (order.paymentMethod === 'cash_on_delivery') {
+//           order.isPaid = true;
+//           order.paidAt = Date.now();
+//           order.paymentStatus = 'paid';
+//         }
+//       }
+//     }
+
+//     if (paymentStatus) {
+//       order.paymentStatus = paymentStatus;
+//       if (paymentStatus === 'paid') {
+//         order.isPaid = true;
+//         order.paidAt = Date.now();
+//       }
+//     }
+
+//     const updatedOrder = await order.save();
+    
+//     // Populate the updated order before sending response
+//     await updatedOrder.populate('user', 'name email');
+    
+//     console.log('Order status updated:', updatedOrder._id, 'New status:', updatedOrder.status);
+//     res.json(updatedOrder);
+//   } catch (error) {
+//     console.error('Order status update error:', error);
+//     res.status(500).json({
+//       message: 'Failed to update order status',
+//       error: error.message
+//     });
+//   }
+// });
+
+// // @desc    Delete order (Admin only)
+// // @route   DELETE /api/admin/orders/:id
+// // @access  Private/Admin
+// router.delete('/:id', protect, admin, async (req, res) => {
+//   try {
+//     const order = await Order.findById(req.params.id);
+
+//     if (!order) {
+//       return res.status(404).json({ message: 'Order not found' });
+//     }
+
+//     await Order.findByIdAndDelete(req.params.id);
+//     console.log('Order deleted:', req.params.id);
+//     res.json({ message: 'Order deleted successfully', orderId: req.params.id });
+//   } catch (error) {
+//     console.error('Delete order error:', error);
+//     res.status(500).json({
+//       message: 'Failed to delete order',
+//       error: error.message
+//     });
+//   }
+// });
+
+// // @desc    Get order statistics (Admin only)
+// // @route   GET /api/admin/orders/stats
+// // @access  Private/Admin
+// router.get('/stats', protect, admin, async (req, res) => {
+//   try {
+//     const totalOrders = await Order.countDocuments();
+//     const pendingOrders = await Order.countDocuments({ status: 'Processing' });
+//     const deliveredOrders = await Order.countDocuments({ status: 'Delivered' });
+    
+//     const totalSalesResult = await Order.aggregate([
+//       { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+//     ]);
+    
+//     const totalSales = totalSalesResult.length > 0 ? totalSalesResult[0].total : 0;
+
+//     res.json({
+//       totalOrders,
+//       pendingOrders,
+//       deliveredOrders,
+//       totalSales
+//     });
+//   } catch (error) {
+//     console.error('Order stats error:', error);
+//     res.status(500).json({
+//       message: 'Failed to fetch order statistics',
+//       error: error.message
+//     });
+//   }
+// });
+
+// module.exports = router;
+
 const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, adminOrMerchantise } = require('../middleware/authMiddleware');
 
-// Middleware to check if user is admin
-const admin = (req, res, next) => {
+// Middleware to check if user is admin or merchantise
+const adminOrMerchantiseMiddleware = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'merchantise')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Not authorized as admin or merchantise' });
+  }
+};
+
+// Middleware to check if user is admin only (for sensitive operations)
+const adminOnly = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
     next();
   } else {
@@ -72,17 +225,30 @@ const admin = (req, res, next) => {
   }
 };
 
-// @desc    Get all orders (Admin only)
+// @desc    Get all orders (Admin and Merchantise)
 // @route   GET /api/admin/orders
-// @access  Private/Admin
-router.get('/', protect, admin, async (req, res) => {
+// @access  Private/Admin/Merchantise
+router.get('/', protect, adminOrMerchantiseMiddleware, async (req, res) => {
   try {
-    const orders = await Order.find({})
-      .populate('user', 'name email')
-      .populate('orderItems.productId', 'name image')
-      .sort({ createdAt: -1 });
+    let orders;
+    
+    // If user is admin, show all orders
+    if (req.user.role === 'admin') {
+      orders = await Order.find({})
+        .populate('user', 'name email')
+        .populate('orderItems.productId', 'name image')
+        .sort({ createdAt: -1 });
+    } 
+    // If user is merchantise, show only their orders (if you have merchant-specific orders)
+    // For now, showing all orders to merchantise as well
+    else if (req.user.role === 'merchantise') {
+      orders = await Order.find({})
+        .populate('user', 'name email')
+        .populate('orderItems.productId', 'name image')
+        .sort({ createdAt: -1 });
+    }
 
-    console.log('Admin fetching orders, found:', orders.length);
+    console.log(`${req.user.role} fetching orders, found:`, orders.length);
     res.json(orders);
   } catch (error) {
     console.error('Fetch all orders error:', error);
@@ -93,10 +259,10 @@ router.get('/', protect, admin, async (req, res) => {
   }
 });
 
-// @desc    Update order status (Admin only)
+// @desc    Update order status (Admin and Merchantise)
 // @route   PUT /api/admin/orders/:id
-// @access  Private/Admin
-router.put('/:id', protect, admin, async (req, res) => {
+// @access  Private/Admin/Merchantise
+router.put('/:id', protect, adminOrMerchantiseMiddleware, async (req, res) => {
   try {
     const { status, paymentStatus } = req.body;
     const order = await Order.findById(req.params.id)
@@ -134,7 +300,7 @@ router.put('/:id', protect, admin, async (req, res) => {
     // Populate the updated order before sending response
     await updatedOrder.populate('user', 'name email');
     
-    console.log('Order status updated:', updatedOrder._id, 'New status:', updatedOrder.status);
+    console.log('Order status updated by', req.user.role, ':', updatedOrder._id, 'New status:', updatedOrder.status);
     res.json(updatedOrder);
   } catch (error) {
     console.error('Order status update error:', error);
@@ -148,7 +314,7 @@ router.put('/:id', protect, admin, async (req, res) => {
 // @desc    Delete order (Admin only)
 // @route   DELETE /api/admin/orders/:id
 // @access  Private/Admin
-router.delete('/:id', protect, admin, async (req, res) => {
+router.delete('/:id', protect, adminOnly, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
 
@@ -157,7 +323,7 @@ router.delete('/:id', protect, admin, async (req, res) => {
     }
 
     await Order.findByIdAndDelete(req.params.id);
-    console.log('Order deleted:', req.params.id);
+    console.log('Order deleted by admin:', req.params.id);
     res.json({ message: 'Order deleted successfully', orderId: req.params.id });
   } catch (error) {
     console.error('Delete order error:', error);
@@ -168,18 +334,34 @@ router.delete('/:id', protect, admin, async (req, res) => {
   }
 });
 
-// @desc    Get order statistics (Admin only)
+// @desc    Get order statistics (Admin and Merchantise)
 // @route   GET /api/admin/orders/stats
-// @access  Private/Admin
-router.get('/stats', protect, admin, async (req, res) => {
+// @access  Private/Admin/Merchantise
+router.get('/stats', protect, adminOrMerchantiseMiddleware, async (req, res) => {
   try {
-    const totalOrders = await Order.countDocuments();
-    const pendingOrders = await Order.countDocuments({ status: 'Processing' });
-    const deliveredOrders = await Order.countDocuments({ status: 'Delivered' });
-    
-    const totalSalesResult = await Order.aggregate([
-      { $group: { _id: null, total: { $sum: '$totalPrice' } } }
-    ]);
+    let totalOrders, pendingOrders, deliveredOrders, totalSalesResult;
+
+    // If user is admin, get all statistics
+    if (req.user.role === 'admin') {
+      totalOrders = await Order.countDocuments();
+      pendingOrders = await Order.countDocuments({ status: 'Processing' });
+      deliveredOrders = await Order.countDocuments({ status: 'Delivered' });
+      
+      totalSalesResult = await Order.aggregate([
+        { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+      ]);
+    }
+    // If user is merchantise, get the same stats for now
+    // You can modify this later to filter by merchant if needed
+    else if (req.user.role === 'merchantise') {
+      totalOrders = await Order.countDocuments();
+      pendingOrders = await Order.countDocuments({ status: 'Processing' });
+      deliveredOrders = await Order.countDocuments({ status: 'Delivered' });
+      
+      totalSalesResult = await Order.aggregate([
+        { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+      ]);
+    }
     
     const totalSales = totalSalesResult.length > 0 ? totalSalesResult[0].total : 0;
 

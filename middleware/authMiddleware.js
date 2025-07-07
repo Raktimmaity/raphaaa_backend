@@ -108,4 +108,13 @@ const admin = (req, res, next) => {
     }
 };
 
-module.exports = { protect, admin };
+const adminOrMerchantise = (req, res, next) => {
+  if (req.user && (req.user.role === "admin" || req.user.role === "merchantise")) {
+    next();
+  } else {
+    res.status(401).json({ message: "Not authorized as admin/merchantise" });
+  }
+};
+
+
+module.exports = { protect, admin, adminOrMerchantise };

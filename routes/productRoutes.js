@@ -1,6 +1,6 @@
 const express = require("express");
 const Product = require("../models/Product");
-const { protect, admin } = require("../middleware/authMiddleware");
+const { protect, admin, adminOrMerchantise } = require("../middleware/authMiddleware");
 const Review = require("../models/Review");
 
 
@@ -9,7 +9,7 @@ const router = express.Router();
 // @route POST /api/products
 // @desc Create a new Product
 // @access Private/Admin
-router.post("/", protect, admin, async (req, res) => {
+router.post("/", protect, admin, adminOrMerchantise, async (req, res) => {
     try {
         const {
         name,
