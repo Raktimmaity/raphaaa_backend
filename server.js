@@ -14,30 +14,33 @@ const productAdminRoutes = require("./routes/productAdminRoutes");
 const adminOrderRoutes = require("./routes/adminOrderRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const taskRoutes = require("./routes/taskRoutes");
+const salesRoutes = require("./routes/salesRoutes");
 // const merchRoutes = require("./routes/merchRoutes");
 const Task = require("./models/taskModel");
 const cron = require("node-cron");
+const moment = require("moment-timezone");
 
-// Runs every day at 7:00 PM IST (adjust to your server timezone)
+// Run every day at 7:00 PM IST
 cron.schedule("0 19 * * *", async () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Start of day
-
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
+  const now = moment().tz("Asia/Kolkata");
+  console.log(`[RUNNING] IST Time: ${now.format("hh:mm:ss A")} on ${now.format("DD-MM-YYYY")}`);
+  const startOfDay = now.clone().startOf("day").toDate();
+  const endOfDay = now.clone().endOf("day").toDate();
 
   try {
-    const updated = await Task.updateMany(
+    const result = await Task.updateMany(
       {
-        createdAt: { $gte: today, $lt: tomorrow },
-        status: "working",
+        status: { $nin: ["completed", "not-completed"] }, // Not already completed or marked
+        createdAt: { $gte: startOfDay, $lte: endOfDay },
       },
-      { $set: { status: "not completed" } }
+      { $set: { status: "not-completed" } }
     );
 
-    console.log(`[CRON] Updated ${updated.modifiedCount} tasks as 'not completed'`);
+    console.log(
+      `[TASK STATUS AUTO-UPDATE] ${result.modifiedCount} tasks marked as "not-completed"`
+    );
   } catch (err) {
-    console.error("[CRON] Failed to auto-update tasks:", err.message);
+    console.error("Auto-update failed:", err.message);
   }
 });
 
@@ -78,6 +81,8 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api", subscriberRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/tasks", taskRoutes);
+app.use("/api/inventory", require("./routes/inventoryRoutes"));
+app.use("/api/sales-analysis", salesRoutes);
 
 // Admin routes
 app.use("/api/admin/users", adminRoutes);

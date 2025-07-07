@@ -157,6 +157,17 @@ router.get("/", async (req, res) => {
     }
 });
 
+// GET /api/products/inventory - Admin & Merchandise only
+router.get("/inventory", async (req, res) => {
+  try {
+    const products = await Product.find().select("name category price countInStock");
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch inventory" });
+  }
+});
+
+
 // @route GET /api/products/best-seller
 // @desc Retrieve the product with highest rating
 // @access Public
