@@ -13,6 +13,17 @@ router.post("/", async (req, res) => {
   }
 });
 
+// ✅ Admin route - get all tasks across users
+router.get("/", async (req, res) => {
+  try {
+    const tasks = await Task.find().sort({ createdAt: -1 });
+    res.json(tasks);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
 // ✅ Get all tasks for a specific user by email
 router.get("/user/:email", async (req, res) => {
   try {
