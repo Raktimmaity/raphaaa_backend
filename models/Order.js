@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const crypto = require("crypto");
 
 const orderItemSchema = new mongoose.Schema(
   {
@@ -25,12 +26,21 @@ const orderItemSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    sku: {
+      type: String, // ✅ Added SKU field
+      // required: true,
+    },
   },
   { _id: false }
 );
 
 const orderSchema = new mongoose.Schema(
   {
+    orderId: {
+      type: String,
+      unique: true,
+      required: true,
+    },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -77,5 +87,25 @@ const orderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+orderSchema.pre("validate", async function (next) {
+  if (!this.orderId) {
+    let uniqueId = "";
+    let exists = true;
 
+    while (exists) {
+      // Generate random 6-character alphanumeric ID
+      uniqueId = crypto.randomBytes(3).toString("hex").toUpperCase(); // 6 characters
+
+      // Check if it already exists
+      const existingOrder = await mongoose.models.Order.findOne({ orderId: uniqueId });
+      if (!existingOrder) exists = false;
+    }
+
+    this.orderId = uniqueId;
+  }
+
+  next();
+});
 module.exports = mongoose.model("Order", orderSchema);
+
+

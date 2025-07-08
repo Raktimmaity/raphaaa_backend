@@ -25,6 +25,10 @@ const checkoutItemSchema = new mongoose.Schema(
     },
     size: String,
     color: String,
+    sku: {
+      type: String,
+      // required: true, // ✅ Make sure it's required to avoid errors during conversion to Order
+    },
   },
   { _id: false }
 );

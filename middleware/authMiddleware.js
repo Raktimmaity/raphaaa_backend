@@ -109,7 +109,7 @@ const admin = (req, res, next) => {
 };
 
 const adminOrMerchantise = (req, res, next) => {
-  if (req.user && (req.user.role === "admin" || req.user.role === "merchantise")) {
+  if (req.user && (req.user.role === "admin" || req.user.role === "merchantise" || req.user.role === "delivery_boy")) {
     next();
   } else {
     res.status(401).json({ message: "Not authorized as admin/merchantise" });

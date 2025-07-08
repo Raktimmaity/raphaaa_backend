@@ -92,7 +92,8 @@ router.post('/cod', protect, async (req, res) => {
         price: item.price,
         quantity: item.quantity,
         size: item.size,
-        color: item.color
+        color: item.color,
+        sku: item.sku
       })),
       shippingAddress: {
         address: `${shippingAddress.firstName} ${shippingAddress.lastName}, ${shippingAddress.address}`,

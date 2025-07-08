@@ -20,7 +20,7 @@ router.get("/", protect, admin, async (req, res) => {
 // @route POST /api/admin/users
 // @desc Add a new user (admin only)
 // @access Private/Admin
-router.post("/", protect, admin, async (req, res) => {
+router.post("/", protect, admin, adminOrMerchantise, async (req, res) => {
     const { name, email, password, role } = req.body;
     try {
         let user = await User.findOne({ email });
