@@ -51,7 +51,15 @@ const router = express.Router();
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const Product = require("../models/Product");
-const { protect } = require('../middleware/authMiddleware');
+const { protect, adminOrMerchantise } = require('../middleware/authMiddleware');
+const {
+  getWeeklyRevenue,
+  getMonthlyRevenue,
+  getYearlyRevenue,
+  getTodayRevenue
+} = require("../controller/revenueController");
+
+const { getRevenueByPeriod } = require("../controller/orderController");
 
 // @desc    Create Cash on Delivery Order
 // @route   POST /api/orders/cod
@@ -225,5 +233,58 @@ router.get('/:id', protect, async (req, res) => {
     });
   }
 });
+
+// Example API Endpoint in Express (orderRoutes.js)
+router.get('/revenue/total', protect, adminOrMerchantise, async (req, res) => {
+  try {
+    const orders = await Order.find({ isPaid: true });
+    const totalRevenue = orders.reduce((acc, order) => acc + order.totalPrice, 0);
+    res.json({ totalRevenue });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+router.get("/revenue/weekly", protect, getWeeklyRevenue);
+router.get("/revenue/monthly", protect, getMonthlyRevenue);
+router.get("/revenue/yearly", protect, getYearlyRevenue);
+router.get("/revenue/today", protect, getTodayRevenue);
+
+router.get("/revenue/:period", protect, adminOrMerchantise, async (req, res) => {
+  try {
+    const { period } = req.params;
+
+    const now = new Date();
+    let startDate;
+
+    if (period === "weekly") {
+      startDate = new Date(now.setDate(now.getDate() - 7));
+    } else if (period === "monthly") {
+      startDate = new Date(now.setMonth(now.getMonth() - 1));
+    } else if (period === "yearly") {
+      startDate = new Date(now.setFullYear(now.getFullYear() - 1));
+    } else if (period === "daily") {
+      startDate = new Date();
+      startDate.setHours(0, 0, 0, 0);
+    } else {
+      return res.status(400).json({ message: "Invalid period" });
+    }
+
+    const orders = await Order.find({
+      isPaid: true,
+      paidAt: { $gte: startDate },
+    });
+
+    const totalRevenue = orders.reduce((acc, order) => acc + order.totalPrice, 0);
+
+    res.json({ totalRevenue, totalOrders: orders.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error fetching revenue" });
+  }
+});
+
+router.get('/revenue/:period', protect, getRevenueByPeriod);
+
 
 module.exports = router;
