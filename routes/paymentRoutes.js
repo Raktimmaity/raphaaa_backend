@@ -5,6 +5,7 @@ const razorpayInstance = require('../config/razorpay');
 const Payment = require('../models/payment');
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
+const Product = require("../models/Product");
 const { protect } = require('../middleware/authMiddleware');
 
 // ===================================
@@ -103,6 +104,15 @@ router.post('/verify-payment', protect, async (req, res) => {
         email_address: req.user.email,
       };
       await order.save();
+      // ✅ FIXED: Update product stock from order.orderItems
+for (const item of order.orderItems) {
+  const product = await Product.findById(item.productId);
+  if (product) {
+    product.countInStock -= item.quantity;
+    if (product.countInStock < 0) product.countInStock = 0;
+    await product.save();
+  }
+}
 
       await Cart.findOneAndDelete({ user: req.user._id });
 
