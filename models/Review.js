@@ -16,6 +16,10 @@ const reviewSchema = new mongoose.Schema(
     rating: { type: Number, required: true },
     comment: { type: String, required: true },
     image: [{ type: String }], // optional delivered image
+    isVerifiedPurchase: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );
