@@ -20,6 +20,7 @@ const Task = require("./models/taskModel");
 const cron = require("node-cron");
 const moment = require("moment-timezone");
 const reviewRoutes = require("./routes/reviewRoutes");
+const contactRoutes = require("./routes/contactRoutes");
 
 // Run every day at 7:00 PM IST
 cron.schedule("0 19 * * *", async () => {
@@ -87,6 +88,7 @@ app.use("/api/sales-analysis", salesRoutes);
 // In server.js or app.js
 app.use("/uploads", express.static("uploads"));
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/contact", contactRoutes);
 
 // Admin routes
 app.use("/api/admin/users", adminRoutes);
