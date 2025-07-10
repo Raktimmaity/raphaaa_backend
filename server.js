@@ -21,6 +21,7 @@ const cron = require("node-cron");
 const moment = require("moment-timezone");
 const reviewRoutes = require("./routes/reviewRoutes");
 const contactRoutes = require("./routes/contactRoutes");
+const heroRoutes = require("./routes/heroRoutes");
 
 // Run every day at 7:00 PM IST
 cron.schedule("0 19 * * *", async () => {
@@ -89,6 +90,7 @@ app.use("/api/sales-analysis", salesRoutes);
 app.use("/uploads", express.static("uploads"));
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/website/hero", heroRoutes);
 
 // Admin routes
 app.use("/api/admin/users", adminRoutes);
