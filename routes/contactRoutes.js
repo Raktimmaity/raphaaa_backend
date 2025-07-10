@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Contact = require("../models/Contact");
+const sendMail = require("../utils/sendMail");
 
 // Post the user contact details
 router.post("/", async (req, res) => {
@@ -24,6 +25,33 @@ router.get("/", async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: "Failed to fecth message" });
     }
+});
+
+// Delete a partcular message
+router.delete("/:id", async (req, res) => {
+    try {
+        await Contact.findByIdAndDelete(req.params.id);
+        res.status(200).json({ message: "Deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to delete" });
+    }
+});
+
+
+router.post("/reply", async (req, res) => {
+  const { to, subject, message } = req.body;
+
+  if (!to || !subject || !message) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  try {
+    await sendMail({ to, subject, message });
+    res.status(200).json({ message: "Email sent successfully" });
+  } catch (error) {
+    console.error("Email sending failed:", error);
+    res.status(500).json({ error: "Failed to send email" });
+  }
 });
 
 module.exports = router;
