@@ -2,6 +2,7 @@ const express = require("express");
 const Product = require("../models/Product");
 const { protect, admin, adminOrMerchantise } = require("../middleware/authMiddleware");
 const Review = require("../models/Review");
+const Order = require("../models/Order");
 
 
 const router = express.Router();
@@ -171,19 +172,68 @@ router.get("/inventory", async (req, res) => {
 // @route GET /api/products/best-seller
 // @desc Retrieve the product with highest rating
 // @access Public
-router.get("/best-seller", async(req, res) => {
-    try {
-        const bestSeller = await Product.findOne().sort({ rating: -1 });
-        if(bestSeller){
-            res.json(bestSeller);
-        } else {
-            res.status(404).json({ message: "No best seller found" });
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).send("Internal Server error");
-    }
+// router.get("/best-seller", async(req, res) => {
+//     try {
+//         const bestSeller = await Product.findOne().sort({ rating: -1 });
+//         if(bestSeller){
+//             res.json(bestSeller);
+//         } else {
+//             res.status(404).json({ message: "No best seller found" });
+//         }
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).send("Internal Server error");
+//     }
+// });
+
+// routes/productRoutes.js or analyticsRoutes.js
+router.get("/best-seller", async (req, res) => {
+  try {
+    const bestSellers = await Order.aggregate([
+      { $unwind: "$orderItems" }, // Break down array of items
+
+      {
+        $group: {
+          _id: "$orderItems.productId", // Group by product ID
+          totalSold: { $sum: "$orderItems.quantity" }, // Sum quantity sold
+        },
+      },
+
+      { $sort: { totalSold: -1 } }, // Sort by sold quantity, highest first
+      { $limit: 10 }, // Top 10
+
+      {
+        $lookup: {
+          from: "products", // ⬅️ must match your actual MongoDB collection name
+          localField: "_id",
+          foreignField: "_id",
+          as: "product",
+        },
+      },
+      { $unwind: "$product" }, // convert array to object
+
+      {
+        $project: {
+          _id: 0,
+          productId: "$product._id",
+          name: "$product.name",
+          price: "$product.price",
+          discountPrice: "$product.discountPrice",
+          category: "$product.category",
+          gender: "$product.gender",
+          image: { $arrayElemAt: ["$product.images.url", 0] },
+          totalSold: 1,
+        },
+      },
+    ]);
+
+    res.status(200).json(bestSellers);
+  } catch (error) {
+    console.error("Error fetching best sellers:", error);
+    res.status(500).json({ message: "Failed to fetch best sellers" });
+  }
 });
+
 
 // @route GET /api/products/new-arrivals
 // @desc Retrieve latest 8 products - Creation date
