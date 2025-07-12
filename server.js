@@ -22,6 +22,8 @@ const moment = require("moment-timezone");
 const reviewRoutes = require("./routes/reviewRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const heroRoutes = require("./routes/heroRoutes");
+const webhookRoute = require("./routes/paymentWebhook");
+const suggestionRoutes = require("./routes/suggestionRoutes");
 
 // Run every day at 7:00 PM IST
 cron.schedule("0 19 * * *", async () => {
@@ -54,6 +56,7 @@ const corsConfig = {
 };
 
 const app = express();
+app.use("/api/payment/webhook", webhookRoute);
 app.use(express.json());
 // app.use(cors({
 //   origin: "http://localhost:9000", // change to your frontend URL
@@ -91,6 +94,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/website/hero", heroRoutes);
+app.use("/api/suggestions", suggestionRoutes);
 
 // Admin routes
 app.use("/api/admin/users", adminRoutes);
