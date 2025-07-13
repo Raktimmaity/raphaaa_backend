@@ -7,30 +7,29 @@ const Subscriber = require("../models/Subscriber");
 // @access Public
 router.post("/subscribe", async (req, res) => {
     const { email } = req.body;
+    const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
-    if(!email) {
+    if (!email) {
         return res.status(400).json({ message: "Email is required" });
     }
 
     try {
-        // Check if the email is already subscribed
         let subscriber = await Subscriber.findOne({ email });
 
-        if(subscriber) {
+        if (subscriber) {
             return res.status(400).json({ message: "Email is already subscribed" });
         }
 
-        // Create a new subscriber
-        subscriber = new Subscriber({ email });
+        subscriber = new Subscriber({ email, ipAddress: ip });
         await subscriber.save();
 
-        res
-            .status(201)
-            .json({ message: "Successfully subscribed to the newsletter!" });
+        res.status(201).json({ message: "Successfully subscribed to the newsletter!" });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Internal server error" });
     }
 });
+
+
 
 module.exports = router;

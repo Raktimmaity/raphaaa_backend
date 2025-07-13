@@ -8,6 +8,7 @@ const subscriberSchema = new mongoose.Schema({
         trim: true,
         lowercase: true,
     },
+    ipAddress: { type: String },
     subscribedAt: {
         type: Date,
         default: Date.now,
