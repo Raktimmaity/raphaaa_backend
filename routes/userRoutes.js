@@ -3,6 +3,7 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const { protect } = require("../middleware/authMiddleware");
 const router = express.Router();
+const bcrypt = require("bcryptjs");
 
 // @route POST /api/users/register
 // @desc Register a new User
@@ -175,5 +176,79 @@ router.put("/update-profile", protect, async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
+// @route   PUT /api/auth/reset-password
+// @desc    Reset password using email
+// @access  Public
+// @route   PUT /api/auth/reset-password
+// @desc    Reset password using email (only for customer role)
+// @access  Public
+router.put("/reset-password", async (req, res) => {
+  const { email, password, confirmPassword } = req.body;
+
+  try {
+    // ✅ Validation
+    if (!email || !password || !confirmPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
+
+    // ✅ Check if user exists
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // ✅ Role restriction
+    if (user.role !== "customer") {
+      return res.status(403).json({ message: "Access denied!!" });
+    }
+
+    // ✅ Hash and save new password
+    user.password = password; // Automatically hashed in pre-save middleware
+    const updatedUser = await user.save();
+
+    // ✅ Generate token
+    const payload = { user: { id: updatedUser._id, role: updatedUser.role } };
+    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "40h" }, (err, token) => {
+      if (err) {
+        console.error("JWT Sign Error:", err);
+        return res.status(500).json({ message: "Error generating token" });
+      }
+
+      return res.json({
+        message: "Password reset successfully!",
+        user: {
+          _id: updatedUser._id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+        },
+        token,
+      });
+    });
+
+  } catch (error) {
+    console.error("Reset password error:", error);
+
+    // ✅ Enhanced error handling
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "Duplicate entry" });
+    }
+
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ message: messages.join(', ') });
+    }
+
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
 
 module.exports = router;
