@@ -24,6 +24,8 @@ const contactRoutes = require("./routes/contactRoutes");
 const heroRoutes = require("./routes/heroRoutes");
 const webhookRoute = require("./routes/paymentWebhook");
 const suggestionRoutes = require("./routes/suggestionRoutes");
+const contactSettingRoutes = require("./routes/contactSettingRoutes");
+const aboutRoutes = require("./routes/aboutRoutes");
 
 // Run every day at 7:00 PM IST
 cron.schedule("0 19 * * *", async () => {
@@ -95,6 +97,8 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/website/hero", heroRoutes);
 app.use("/api/suggestions", suggestionRoutes);
+app.use("/api/settings/contact", contactSettingRoutes);
+app.use("/api/settings/about", aboutRoutes);
 
 // Admin routes
 app.use("/api/admin/users", adminRoutes);
