@@ -86,4 +86,38 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+// @route   GET /api/collabs/footballer/:slug
+// @desc    Get a footballer's used products by slug (e.g., ronaldo, messi)
+// @access  Public
+router.get("/footballer/:slug", async (req, res) => {
+  try {
+    const slug = req.params.slug.toLowerCase();
+
+    // Get all published collabs
+    const collabs = await Collab.find({ isPublished: true }).populate("collaborators.products");
+
+    for (const collab of collabs) {
+      for (const person of collab.collaborators) {
+        const personSlug = person.name.toLowerCase().replace(/\s+/g, "-");
+
+        if (personSlug === slug) {
+          return res.json({
+            footballer: person.name,
+            // image: person.image,
+            footballerImage: person.image,
+            products: person.products,
+            collabTitle: collab.title,
+            collabBanner: collab.image,
+          });
+        }
+      }
+    }
+
+    return res.status(404).json({ message: "Footballer not found in any published collab." });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch footballer details", error: err.message });
+  }
+});
+
+
 module.exports = router;
