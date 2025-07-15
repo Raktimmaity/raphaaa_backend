@@ -21,7 +21,8 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Invalid webhook signature" });
     }
 
-    const body = JSON.parse(req.body); // Manually parse body
+    // const body = JSON.parse(req.body); // Manually parse body
+    const body = JSON.parse(req.body.toString());
     const event = body.event;
     const paymentEntity = body.payload.payment?.entity;
 

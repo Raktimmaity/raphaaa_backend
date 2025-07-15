@@ -13,7 +13,13 @@ const { protect } = require("../middleware/authMiddleware");
 // ===================================
 router.post("/create-order", protect, async (req, res) => {
   try {
-    const { amount, currency = "INR", receipt, orderItems, shippingAddress } = req.body;
+    const {
+      amount,
+      currency = "INR",
+      receipt,
+      orderItems,
+      shippingAddress,
+    } = req.body;
 
     // Create order in DB first
     // const order = new Order({
@@ -27,45 +33,44 @@ router.post("/create-order", protect, async (req, res) => {
     // });
 
     const order = new Order({
-          user: req.user._id,
-          orderItems: orderItems.map(item => ({
-            productId: item.productId,
-            name: item.name,
-            image: item.image,
-            price: item.price,
-            quantity: item.quantity,
-            size: item.size,
-            color: item.color,
-            sku: item.sku
-          })),
-          shippingAddress: {
-            address: `${shippingAddress.firstName} ${shippingAddress.lastName}, ${shippingAddress.address}`,
-            city: shippingAddress.city,
-            postalCode: shippingAddress.postalCode,
-            country: shippingAddress.country,
-            phone: shippingAddress.phone
-          },
-          paymentMethod: 'Razor Pay',
-          totalPrice,
-          isPaid: false,
-          paymentStatus: 'pending',
-          status: 'Processing'
-        });
-    
+      user: req.user._id,
+      orderItems: orderItems.map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        image: item.image,
+        price: item.price,
+        quantity: item.quantity,
+        size: item.size,
+        color: item.color,
+        sku: item.sku,
+      })),
+      shippingAddress: {
+        address: `${shippingAddress.firstName} ${shippingAddress.lastName}, ${shippingAddress.address}`,
+        city: shippingAddress.city,
+        postalCode: shippingAddress.postalCode,
+        country: shippingAddress.country,
+        phone: shippingAddress.phone,
+      },
+      paymentMethod: "Razor Pay",
+      totalPrice,
+      isPaid: false,
+      paymentStatus: "pending",
+      status: "Processing",
+    });
 
     const createdOrder = await order.save();
-    for (const item of orderItems) {
-        const product = await Product.findById(item.productId);
-        if (product) {
-          product.countInStock -= item.quantity;
-          if (product.countInStock < 0) product.countInStock = 0;
-          await product.save();
-        }
-      }
+    // for (const item of orderItems) {
+    //     const product = await Product.findById(item.productId);
+    //     if (product) {
+    //       product.countInStock -= item.quantity;
+    //       if (product.countInStock < 0) product.countInStock = 0;
+    //       await product.save();
+    //     }
+    //   }
 
     // ❌ REMOVED: Don't decrease stock here - only decrease after successful payment
     // Stock will be decreased in verify-payment route
-      
+
     // Create Razorpay order
     const options = {
       amount,
@@ -112,80 +117,77 @@ router.post("/create-order", protect, async (req, res) => {
 // ===================================
 router.post("/verify-payment", protect, async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
-      req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
+    // Validate Razorpay signature
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(sign)
       .digest("hex");
 
-    const payment = await Payment.findOne({
-      razorpayOrderId: razorpay_order_id,
-    });
-    if (!payment) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Payment record not found" });
+    if (razorpay_signature !== expectedSignature) {
+      return res.status(400).json({ success: false, message: "Invalid Razorpay signature" });
     }
 
-    if (razorpay_signature === expectedSignature) {
-      // ✅ Valid Signature
-      payment.razorpayPaymentId = razorpay_payment_id;
-      payment.razorpaySignature = razorpay_signature;
-      payment.status = "captured";
-      await payment.save();
+    const payment = await Payment.findOne({ razorpayOrderId: razorpay_order_id });
+    if (!payment) return res.status(404).json({ success: false, message: "Payment not found" });
 
-      const order = await Order.findById(payment.orderId);
-      order.isPaid = true;
-      order.paidAt = new Date();
-      order.paymentResult = {
-        id: razorpay_payment_id,
-        status: "captured",
-        update_time: new Date(),
-        email_address: req.user.email,
-      };
-      await order.save();
+    const order = await Order.findById(payment.orderId).populate({
+      path: "orderItems.productId", // ✅ proper nested populate
+      model: "Product",
+    });
 
-      // ✅ FIXED: Update product stock after successful payment verification
-      for (const item of order.orderItems) {
-        const product = await Product.findById(item.productId);
-        if (product) {
-          product.countInStock -= item.quantity;
-          if (product.countInStock < 0) product.countInStock = 0;
-          await product.save();
-        }
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+
+    // Update payment & order
+    payment.razorpayPaymentId = razorpay_payment_id;
+    payment.razorpaySignature = razorpay_signature;
+    payment.status = "captured";
+    await payment.save();
+
+    order.isPaid = true;
+    order.paidAt = new Date();
+    order.paymentStatus = "paid";
+    order.paymentResult = {
+      id: razorpay_payment_id,
+      status: "captured",
+      update_time: new Date(),
+      email_address: req.user.email,
+    };
+    await order.save();
+
+    // ✅ Now stock will update correctly
+    for (const item of order.orderItems) {
+      const product = item.productId;
+      if (product) {
+        product.countInStock -= item.quantity;
+        if (product.countInStock < 0) product.countInStock = 0;
+        await product.save();
+        console.log(`✅ Updated stock for: ${product.name}`);
+      } else {
+        console.log(`❌ Product not found for item:`, item);
       }
-
-      // ✅ Clear cart after successful payment
-      await Cart.findOneAndDelete({ user: req.user._id });
-
-      res.json({
-        success: true,
-        message: "Payment verified successfully",
-        orderId: order._id,
-        paymentId: razorpay_payment_id,
-      });
-    } else {
-      // ❌ Invalid Signature
-      payment.status = "failed";
-      payment.failureReason = "Signature mismatch";
-      await payment.save();
-
-      res
-        .status(400)
-        .json({ success: false, message: "Payment verification failed" });
     }
-  } catch (error) {
-    console.error("💥 Error verifying payment:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: error.message,
+
+    // ✅ Clear cart
+    await Cart.findOneAndUpdate({ user: req.user._id }, { products: [], totalPrice: 0 });
+
+    res.json({
+      success: true,
+      message: "Payment verified and stock updated",
+      orderId: order._id,
+      paymentId: razorpay_payment_id,
     });
+  } catch (err) {
+    console.error("💥 Error verifying payment:", err);
+    res.status(500).json({ success: false, message: "Server error", error: err.message });
   }
 });
+
+
+
+
 
 // ===================================
 // 🔹 3. Handle Manual Payment Failure
@@ -217,44 +219,44 @@ router.post("/payment-failed", protect, async (req, res) => {
 // ===================================
 // 🔹 4. Razorpay Webhook Handler
 // ===================================
-router.post(
-  "/webhook",
-  express.raw({ type: "application/json" }),
-  async (req, res) => {
-    const signature = req.headers["x-razorpay-signature"];
-    const body = req.body;
+// router.post(
+//   "/webhook",
+//   express.raw({ type: "application/json" }),
+//   async (req, res) => {
+//     const signature = req.headers["x-razorpay-signature"];
+//     const body = req.body;
 
-    const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET)
-      .update(JSON.stringify(body))
-      .digest("hex");
+//     const expectedSignature = crypto
+//       .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET)
+//       .update(JSON.stringify(body))
+//       .digest("hex");
 
-    if (signature !== expectedSignature) {
-      return res.status(400).json({ error: "Invalid webhook signature" });
-    }
+//     if (signature !== expectedSignature) {
+//       return res.status(400).json({ error: "Invalid webhook signature" });
+//     }
 
-    const event = body.event;
-    const paymentEntity = body.payload.payment?.entity;
+//     const event = body.event;
+//     const paymentEntity = body.payload.payment?.entity;
 
-    try {
-      switch (event) {
-        case "payment.captured":
-          await handlePaymentCaptured(paymentEntity);
-          break;
-        case "payment.failed":
-          await handlePaymentFailed(paymentEntity);
-          break;
-        default:
-          console.log(`Unhandled webhook event: ${event}`);
-      }
+//     try {
+//       switch (event) {
+//         case "payment.captured":
+//           await handlePaymentCaptured(paymentEntity);
+//           break;
+//         case "payment.failed":
+//           await handlePaymentFailed(paymentEntity);
+//           break;
+//         default:
+//           console.log(`Unhandled webhook event: ${event}`);
+//       }
 
-      res.json({ received: true });
-    } catch (error) {
-      console.error("💥 Webhook error:", error);
-      res.status(500).json({ error: "Webhook processing failed" });
-    }
-  }
-);
+//       res.json({ received: true });
+//     } catch (error) {
+//       console.error("💥 Webhook error:", error);
+//       res.status(500).json({ error: "Webhook processing failed" });
+//     }
+//   }
+// );
 
 // ========== 🔸Webhook Handlers ==========
 async function handlePaymentCaptured(payment) {
@@ -272,7 +274,7 @@ async function handlePaymentCaptured(payment) {
       if (order && !order.isPaid) {
         order.isPaid = true;
         order.paidAt = new Date();
-        order.paymentStatus = 'paid';
+        order.paymentStatus = "paid";
         await order.save();
 
         // ✅ Decrease stock via webhook as well

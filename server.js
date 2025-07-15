@@ -22,7 +22,7 @@ const moment = require("moment-timezone");
 const reviewRoutes = require("./routes/reviewRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const heroRoutes = require("./routes/heroRoutes");
-const webhookRoute = require("./routes/paymentWebhook");
+const webhookRoutes = require("./routes/paymentWebhook");
 const suggestionRoutes = require("./routes/suggestionRoutes");
 const contactSettingRoutes = require("./routes/contactSettingRoutes");
 const aboutRoutes = require("./routes/aboutRoutes");
@@ -59,7 +59,7 @@ const corsConfig = {
 };
 
 const app = express();
-app.use("/api/payment/webhook", webhookRoute);
+// app.use("/api/payment/webhook", webhookRoute);
 app.use(express.json());
 // app.use(cors({
 //   origin: "http://localhost:9000", // change to your frontend URL
@@ -101,6 +101,7 @@ app.use("/api/suggestions", suggestionRoutes);
 app.use("/api/settings/contact", contactSettingRoutes);
 app.use("/api/settings/about", aboutRoutes);
 app.use("/api/collabs", collabRoutes);
+app.use("/api/payment/webhook", webhookRoutes);
 
 // Admin routes
 app.use("/api/admin/users", adminRoutes);
