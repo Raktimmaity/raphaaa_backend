@@ -12,6 +12,7 @@ const { protect } = require("../middleware/authMiddleware");
 // 🔹 1. Create Razorpay Order
 // ===================================
 router.post("/create-order", protect, async (req, res) => {
+  console.log("online payment initiated")
   try {
     const {
       amount,
@@ -59,14 +60,17 @@ router.post("/create-order", protect, async (req, res) => {
     });
 
     const createdOrder = await order.save();
-    // for (const item of orderItems) {
-    //     const product = await Product.findById(item.productId);
-    //     if (product) {
-    //       product.countInStock -= item.quantity;
-    //       if (product.countInStock < 0) product.countInStock = 0;
-    //       await product.save();
-    //     }
-    //   }
+    console.log(orderItems)
+    for (const item of orderItems) {
+        console.log("item is: ", item)
+        const product = await Product.findById(item.productId);
+        console.log("product is: ", product)
+        if (product) {
+          product.countInStock -= item.quantity;
+          if (product.countInStock < 0) product.countInStock = 0;
+          await product.save();
+        }
+      }
 
     // ❌ REMOVED: Don't decrease stock here - only decrease after successful payment
     // Stock will be decreased in verify-payment route
