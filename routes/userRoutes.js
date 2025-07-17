@@ -9,6 +9,9 @@ const bcrypt = require("bcryptjs");
 // @desc Register a new User
 // @access Public
 router.post("/register", async (req, res) => {
+  const couponCode = `WELCOME${Math.floor(1000 + Math.random() * 9000)}`;
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 10); // Valid for 10 days
   const { name, email, password } = req.body;
 
   try {
@@ -17,7 +20,16 @@ router.post("/register", async (req, res) => {
 
     if (user) return res.status(400).json({ message: "User already exists." });
 
-    user = new User({ name, email, password });
+    user = new User({
+      name,
+      email,
+      password,
+      coupon: {
+        code: couponCode,
+        discount: 10,
+        expiresAt,
+      },
+    });
     await user.save();
 
     // Create JWT Payload
@@ -98,7 +110,10 @@ router.post("/login", async (req, res) => {
 // @desc Get the logged-in user's profile (Protected Route)
 // @access Private
 router.get("/profile", protect, async (req, res) => {
-    res.json(req.user);
+  // res.json(req.user);
+  const user = await User.findById(req.user._id).select("-password");
+  if (!user) return res.status(404).json({ message: "User not found" });
+  res.json(user);
 });
 
 // @route PUT /api/users/profile
@@ -107,8 +122,8 @@ router.get("/profile", protect, async (req, res) => {
 router.put("/update-profile", protect, async (req, res) => {
   try {
     // ✅ Enhanced validation
-    const { name, email, password } = req.body;
-    
+    const { name, email, password, photo } = req.body;
+
     // Check if required fields are provided
     if (!name || !email) {
       return res.status(400).json({ message: "Name and email are required" });
@@ -124,13 +139,18 @@ router.put("/update-profile", protect, async (req, res) => {
     if (email !== user.email) {
       const emailExists = await User.findOne({ email, _id: { $ne: user._id } });
       if (emailExists) {
-        return res.status(400).json({ message: "Email already in use by another user" });
+        return res
+          .status(400)
+          .json({ message: "Email already in use by another user" });
       }
     }
 
     // Update user fields
     user.name = name;
     user.email = email;
+    if (photo) {
+  user.photo = photo;
+}
 
     // ✅ Only update password if provided and not empty
     if (password && password.trim() !== "") {
@@ -141,38 +161,43 @@ router.put("/update-profile", protect, async (req, res) => {
 
     // ✅ Enhanced JWT payload and error handling
     const payload = { user: { id: updatedUser._id, role: updatedUser.role } };
-    
-    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "40h" }, (err, token) => {
-      if (err) {
-        console.error("JWT Sign Error:", err);
-        return res.status(500).json({ message: "Error generating token" });
+
+    jwt.sign(
+      payload,
+      process.env.JWT_SECRET,
+      { expiresIn: "40h" },
+      (err, token) => {
+        if (err) {
+          console.error("JWT Sign Error:", err);
+          return res.status(500).json({ message: "Error generating token" });
+        }
+
+        res.json({
+          user: {
+            _id: updatedUser._id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            role: updatedUser.role,
+            photo: updatedUser.photo,
+          },
+          token,
+        });
       }
-
-      res.json({
-        user: {
-          _id: updatedUser._id,
-          name: updatedUser.name,
-          email: updatedUser.email,
-          role: updatedUser.role,
-        },
-        token,
-      });
-    });
-
+    );
   } catch (error) {
     console.error("Update profile error:", error);
-    
+
     // ✅ Enhanced error handling
     if (error.code === 11000) {
       // MongoDB duplicate key error
       return res.status(400).json({ message: "Email already exists" });
     }
-    
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ message: messages.join(', ') });
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((err) => err.message);
+      return res.status(400).json({ message: messages.join(", ") });
     }
-    
+
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -214,24 +239,28 @@ router.put("/reset-password", async (req, res) => {
 
     // ✅ Generate token
     const payload = { user: { id: updatedUser._id, role: updatedUser.role } };
-    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "40h" }, (err, token) => {
-      if (err) {
-        console.error("JWT Sign Error:", err);
-        return res.status(500).json({ message: "Error generating token" });
+    jwt.sign(
+      payload,
+      process.env.JWT_SECRET,
+      { expiresIn: "40h" },
+      (err, token) => {
+        if (err) {
+          console.error("JWT Sign Error:", err);
+          return res.status(500).json({ message: "Error generating token" });
+        }
+
+        return res.json({
+          message: "Password reset successfully!",
+          user: {
+            _id: updatedUser._id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            role: updatedUser.role,
+          },
+          token,
+        });
       }
-
-      return res.json({
-        message: "Password reset successfully!",
-        user: {
-          _id: updatedUser._id,
-          name: updatedUser.name,
-          email: updatedUser.email,
-          role: updatedUser.role,
-        },
-        token,
-      });
-    });
-
+    );
   } catch (error) {
     console.error("Reset password error:", error);
 
@@ -240,15 +269,13 @@ router.put("/reset-password", async (req, res) => {
       return res.status(400).json({ message: "Duplicate entry" });
     }
 
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ message: messages.join(', ') });
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((err) => err.message);
+      return res.status(400).json({ message: messages.join(", ") });
     }
 
     return res.status(500).json({ message: "Internal server error" });
   }
 });
-
-
 
 module.exports = router;

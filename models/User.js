@@ -25,7 +25,10 @@ const userSchema = new mongoose.Schema(
       enum: ["customer", "admin", "merchantise", "delivery_boy"],
       default: "customer",
     },
-
+    photo: {
+      type: String,
+      default: "",
+    },
     addresses: [
       {
         address: { type: String, required: true, trim: true },
@@ -36,6 +39,11 @@ const userSchema = new mongoose.Schema(
         isDefault: { type: Boolean, default: false },
       },
     ],
+    coupon: {
+      code: { type: String },
+      discount: { type: Number }, // e.g., 10 for 10%
+      expiresAt: { type: Date },
+    },
   },
   { timestamps: true }
 );

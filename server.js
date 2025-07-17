@@ -28,6 +28,7 @@ const contactSettingRoutes = require("./routes/contactSettingRoutes");
 const aboutRoutes = require("./routes/aboutRoutes");
 const collabRoutes = require("./routes/collabRoutes");
 const userAddressRoutes = require("./routes/userAddressRoutes");
+const policyRoutes = require("./routes/policyRoutes");
 
 // Run every day at 7:00 PM IST
 cron.schedule("0 19 * * *", async () => {
@@ -104,6 +105,7 @@ app.use("/api/settings/about", aboutRoutes);
 app.use("/api/collabs", collabRoutes);
 app.use("/api/payment/webhook", webhookRoutes);
 app.use("/api/user/addresses", userAddressRoutes);
+app.use("/api/settings/policy", policyRoutes);
 
 // Admin routes
 app.use("/api/admin/users", adminRoutes);

@@ -3,6 +3,7 @@ const Product = require("../models/Product");
 const { protect, admin, adminOrMerchantise } = require("../middleware/authMiddleware");
 const Review = require("../models/Review");
 const Order = require("../models/Order");
+const User = require("../models/User");
 
 
 const router = express.Router();
@@ -32,6 +33,7 @@ router.post("/", protect, admin, adminOrMerchantise, async (req, res) => {
         dimensions,
         weight,
         sku,
+        offerPercentage,
         } = req.body;
 
         const product = new Product({
@@ -54,6 +56,7 @@ router.post("/", protect, admin, adminOrMerchantise, async (req, res) => {
         dimensions,
         weight,
         sku,
+        offerPercentage,
         user: req.user._id, // Reference to the admin user who created it
         });
 
@@ -69,93 +72,113 @@ router.post("/", protect, admin, adminOrMerchantise, async (req, res) => {
 // @desc Get all products with optional queries filters 
 // access Public
 router.get("/", async (req, res) => {
-    try {
-        const { 
-            collection, 
-            size, 
-            color, 
-            gender, 
-            minPrice, 
-            maxPrice, 
-            sortBy, 
-            search, 
-            category, 
-            material, 
-            brand, 
-            limit 
-        } = req.query;
+  try {
+    const {
+      collection,
+      size,
+      color,
+      gender,
+      minPrice,
+      maxPrice,
+      sortBy,
+      search,
+      category,
+      material,
+      brand,
+      limit,
+      userId, // 👈 new
+    } = req.query;
 
-        let query = {};
+    let query = {};
 
-        // Filter logic
-        if(collection && collection.toLocaleLowerCase() !== "all"){
-            query.collections = collection;
-        }
-
-        if (category && category.toLocaleLowerCase() !== "all") {
-            query.category = category;
-        }
-
-        if(material){
-            query.material = {$in: material.split(",")};
-        }
-
-        if(brand){
-            query.brand = {$in: brand.split(",")};
-        }
-
-        if(size){
-            query.sizes = {$in: size.split(",")};
-        }
-        
-        if(color){
-            query.colors = {$in: [color]};
-        }
-
-        if(gender){
-            query.gender = gender;
-        }
-
-        if(minPrice || maxPrice){
-            query.price = {};
-            if(minPrice) query.price.$gte = Number(minPrice);
-            if(maxPrice)query.price.$lte = Number(maxPrice);
-        }
-
-        if(search){
-            query.$or = [
-                {name: {$regex: search, $options: "i"}},
-                {description: {$regex: search, $options: "i"}},
-            ];
-        }
-
-        // Sort Logic
-        let sort = {};
-        if(sortBy){
-            switch(sortBy) {
-                case "priceAsc":
-                    sort = { price: 1 };
-                    break;
-                case "priceDesc":
-                    sort = { price: -1 };
-                    break;
-                case "popularity":
-                    sort = { rating: -1 };
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        // Fetch products and apply sorting and limit
-        let products = await Product.find(query)
-            .sort(sort)
-            .limit(Number(limit) || 0);
-        res.json(products);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send("Internal Server Error");
+    // Filters
+    if (collection && collection.toLowerCase() !== "all") {
+      query.collections = collection;
     }
+
+    if (category && category.toLowerCase() !== "all") {
+      query.category = category;
+    }
+
+    if (material) {
+      query.material = { $in: material.split(",") };
+    }
+
+    if (brand) {
+      query.brand = { $in: brand.split(",") };
+    }
+
+    if (size) {
+      query.sizes = { $in: size.split(",") };
+    }
+
+    if (color) {
+      query.colors = { $in: [color] };
+    }
+
+    if (gender) {
+      query.gender = gender;
+    }
+
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = Number(minPrice);
+      if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Sorting
+    let sort = {};
+    if (sortBy) {
+      switch (sortBy) {
+        case "priceAsc":
+          sort = { price: 1 };
+          break;
+        case "priceDesc":
+          sort = { price: -1 };
+          break;
+        case "popularity":
+          sort = { rating: -1 };
+          break;
+        default:
+          break;
+      }
+    }
+
+    // Fetch products
+    let products = await Product.find(query).sort(sort).limit(Number(limit) || 0);
+
+    // If user has a valid coupon, apply discount
+    if (userId) {
+      const user = await User.findById(userId);
+
+      if (
+        user?.coupon &&
+        user.coupon.code &&
+        user.coupon.discount &&
+        new Date(user.coupon.expiresAt) > new Date()
+      ) {
+        const discount = user.coupon.discount;
+
+        // Apply discountPrice on the fly
+        products = products.map((p) => {
+          const discountPrice = parseFloat((p.price * (1 - discount / 100)).toFixed(2));
+          return { ...p._doc, discountPrice };
+        });
+      }
+    }
+
+    res.json(products);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
 });
 
 // GET /api/products/inventory - Admin & Merchandise only
@@ -299,6 +322,7 @@ router.put("/:id", protect, admin, async(req, res) => {
         dimensions,
         weight,
         sku,
+        offerPercentage,
         } = req.body;
 
         // Find product by ID
@@ -327,6 +351,7 @@ router.put("/:id", protect, admin, async(req, res) => {
             product.dimensions = dimensions || product.dimensions;
             product.weight = weight || product.weight;
             product.sku = sku || product.sku;
+            product.offerPercentage = offerPercentage || 0;
 
             // Save the updated product to the database
             const updatedProduct = await product.save();
