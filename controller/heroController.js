@@ -5,7 +5,7 @@ const cloudinary = require("cloudinary").v2;
 // @route   POST /api/website/hero
 exports.createOrUpdateHero = async (req, res) => {
   try {
-    const { title, paragraph } = req.body;
+    const { title, paragraph, isVisible } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ message: "Hero image is required" });
@@ -22,6 +22,9 @@ exports.createOrUpdateHero = async (req, res) => {
       existing.title = title;
       existing.paragraph = paragraph;
       existing.image = result.secure_url;
+      if (typeof isVisible !== "undefined") {
+        existing.isVisible = isVisible;
+      }
       await existing.save();
       return res.json({ message: "Hero updated", data: existing });
     } else {
@@ -29,6 +32,7 @@ exports.createOrUpdateHero = async (req, res) => {
         title,
         paragraph,
         image: result.secure_url,
+        isVisible: typeof isVisible !== "undefined" ? isVisible : true,
       });
       return res.status(201).json({ message: "Hero created", data: hero });
     }

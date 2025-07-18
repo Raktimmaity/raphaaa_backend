@@ -14,6 +14,10 @@ const heroSchema = new mongoose.Schema(
       type: String, // URL of uploaded image
     //   required: true,
     },
+    isVisible: {
+      type: Boolean,
+      default: true, // true means shown by default
+    },
   },
   { timestamps: true }
 );
