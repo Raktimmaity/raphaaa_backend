@@ -5,7 +5,7 @@ const Wishlist = require("../models/Wishlist");
 const Product = require("../models/Product");
 const { protect } = require("../middleware/authMiddleware");
 
-// Get wishlist for current user
+// Get wishlist for current users
 router.get("/", protect, async (req, res) => {
   try {
     const wishlist = await Wishlist.findOne({ user: req.user._id }).populate("products");
