@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const mongoose = require("mongoose");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
@@ -76,6 +77,12 @@ dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 
+// Reset Mongoose models in development to prevent OverwriteModelError
+if (process.env.NODE_ENV === 'development') {
+  mongoose.models = {};
+  mongoose.modelSchemas = {};
+}
+
 // Connect to the MongoDB database
 connectDB();
 
@@ -91,7 +98,7 @@ app.use("/api/checkout", checkoutRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api", subscriberRoutes);
-app.use("/api/payment", paymentRoutes);
+app.use("/api/paymentRoutes", paymentRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/inventory", require("./routes/inventoryRoutes"));
 app.use("/api/sales-analysis", salesRoutes);
