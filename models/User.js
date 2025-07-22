@@ -44,6 +44,10 @@ const userSchema = new mongoose.Schema(
       discount: { type: Number }, // e.g., 10 for 10%
       expiresAt: { type: Date },
     },
+    mobile: { type: String },
+    mobileVerified: { type: Boolean, default: false },
+    otpCode: { type: String },
+    otpExpires: { type: Date },
   },
   { timestamps: true }
 );

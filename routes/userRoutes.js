@@ -4,6 +4,9 @@ const jwt = require("jsonwebtoken");
 const { protect } = require("../middleware/authMiddleware");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
+const generateOTP = () =>
+  Math.floor(100000 + Math.random() * 900000).toString();
+const sendSMS = require("../utils/sendSMS");
 
 // @route POST /api/users/register
 // @desc Register a new User
@@ -106,6 +109,104 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// @route POST /api/users/google-login
+// @desc Login/Register via Google OAuth
+// @access Public
+router.post("/google-login", async (req, res) => {
+  const { name, email, photo } = req.body;
+
+  try {
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // Auto-register if not found
+      user = new User({
+        name,
+        email,
+        password: Math.random().toString(36).slice(-8), // Random password
+        photo,
+        coupon: {
+          code: `WELCOME${Math.floor(1000 + Math.random() * 9000)}`,
+          discount: 10,
+          expiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+        },
+      });
+      await user.save();
+    }
+
+    const payload = { user: { id: user._id, role: user.role } };
+
+    jwt.sign(
+      payload,
+      process.env.JWT_SECRET,
+      { expiresIn: "40h" },
+      (err, token) => {
+        if (err) throw err;
+        res.json({
+          user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            photo: user.photo,
+          },
+          token,
+        });
+      }
+    );
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Google login failed" });
+  }
+});
+
+// await sendSMS(mobile, otp); // right before saving user
+
+router.post("/send-otp", async (req, res) => {
+  const { userId, mobile } = req.body;
+
+  const otp = generateOTP();
+  const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+  const user = await User.findById(userId);
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  try {
+    await sendSMS(mobile, otp); // ✅ Moved INSIDE async route
+  } catch (error) {
+    console.error("SMS sending failed:", error);
+    return res.status(500).json({ message: "Failed to send OTP" });
+  }
+
+  user.mobile = mobile;
+  user.otpCode = otp;
+  user.otpExpires = expires;
+  await user.save();
+
+  res.json({ message: "OTP sent to mobile" });
+});
+
+router.post("/verify-otp", async (req, res) => {
+  const { userId, otp } = req.body;
+
+  const user = await User.findById(userId);
+  if (!user || !user.otpCode || !user.otpExpires) {
+    return res.status(400).json({ message: "Invalid or expired OTP" });
+  }
+
+  const now = new Date();
+  if (user.otpCode !== otp || now > user.otpExpires) {
+    return res.status(400).json({ message: "Incorrect or expired OTP" });
+  }
+
+  user.mobileVerified = true;
+  user.otpCode = undefined;
+  user.otpExpires = undefined;
+  await user.save();
+
+  res.json({ message: "Mobile number verified successfully" });
+});
+
 // @route GET /api/users/profile
 // @desc Get the logged-in user's profile (Protected Route)
 // @access Private
@@ -149,8 +250,8 @@ router.put("/update-profile", protect, async (req, res) => {
     user.name = name;
     user.email = email;
     if (photo) {
-  user.photo = photo;
-}
+      user.photo = photo;
+    }
 
     // ✅ Only update password if provided and not empty
     if (password && password.trim() !== "") {
@@ -277,5 +378,43 @@ router.put("/reset-password", async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 });
+
+// @route GET /api/users/my-coupon
+// @desc Get coupon for logged-in user
+// @access Private
+router.get("/my-coupon", protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("coupon");
+
+    if (!user || !user.coupon) {
+      return res.status(404).json({ message: "No coupon found" });
+    }
+
+    res.json(user.coupon);
+  } catch (error) {
+    console.error("Coupon fetch failed:", error);
+    res.status(500).json({ message: "Server error while fetching coupon" });
+  }
+});
+
+// @route POST /api/users/validate-coupon
+// @desc Validate user's coupon
+// @access Private
+router.post("/validate-coupon", protect, async (req, res) => {
+  const { couponCode } = req.body;
+  const user = await User.findById(req.user._id);
+
+  if (
+    user &&
+    user.coupon &&
+    user.coupon.code.toUpperCase() === couponCode.toUpperCase() &&
+    new Date(user.coupon.expiresAt) > new Date()
+  ) {
+    return res.json({ valid: true, discount: user.coupon.discount });
+  } else {
+    return res.status(400).json({ valid: false, message: "Invalid or expired coupon" });
+  }
+});
+
 
 module.exports = router;
