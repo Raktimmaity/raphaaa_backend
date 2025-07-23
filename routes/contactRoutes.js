@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Contact = require("../models/Contact");
-const sendMail = require("../utils/sendMail");
+const { sendMail } = require("../utils/sendMail");
 
 // Post the user contact details
 router.post("/", async (req, res) => {
