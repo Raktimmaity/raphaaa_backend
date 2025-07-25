@@ -31,7 +31,7 @@ router.post("/subscribe", async (req, res) => {
             <p>You’ve successfully re-subscribed to Raphaaa updates! 🎉</p>
             <p>We’ll keep you in the loop about new arrivals, offers, and fashion drops.</p>
             <p style="margin-top:20px;font-size:12px;">
-              If you change your mind later, you can <a href="http://localhost:9000/api/unsubscribe/${encodeURIComponent(email)}">unsubscribe here</a>.
+              If you change your mind later, you can <a href="https://raphaaa-backend.onrender.com/api/unsubscribe/${encodeURIComponent(email)}">unsubscribe here</a>.
             </p>
           `,
         });
@@ -53,7 +53,7 @@ router.post("/subscribe", async (req, res) => {
         <p>Thanks for subscribing to Raphaaa! ✨</p>
         <p>You’ll now be the first to hear about new drops, exclusive offers, and stylish arrivals.</p>
         <p style="margin-top:20px;font-size:12px;">
-          Don’t want emails from us? <a href="http://localhost:9000/api/unsubscribe/${encodeURIComponent(email)}">Unsubscribe here</a>.
+          Don’t want emails from us? <a href="https://raphaaa-backend.onrender.com/api/unsubscribe/${encodeURIComponent(email)}">Unsubscribe here</a>.
         </p>
       `,
     });
