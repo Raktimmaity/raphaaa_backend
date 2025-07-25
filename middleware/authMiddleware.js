@@ -50,7 +50,7 @@ const protect = async (req, res, next) => {
             token = req.headers.authorization.split(" ")[1];
             
             // Debug logging (remove in production)
-            console.log('Token received:', token);
+            // console.log('Token received:', token);
             
             // Check if token exists and has proper format
             if (!token) {

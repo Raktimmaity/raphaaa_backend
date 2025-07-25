@@ -206,6 +206,7 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
 const { protect, adminOrMerchantise } = require('../middleware/authMiddleware');
+const { sendMail } = require("../utils/sendMail");
 
 // Middleware to check if user is admin or merchantise
 const adminOrMerchantiseMiddleware = (req, res, next) => {
@@ -277,8 +278,13 @@ router.put('/:id', protect, adminOrMerchantiseMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
+    let shouldSendStatusEmail = false;
+    let newStatus = '';
+
     if (status) {
       order.status = status;
+      newStatus = status;
+      shouldSendStatusEmail = ['Shipped', 'Delivered', 'Cancelled'].includes(status);
 
       if (status === 'Delivered') {
         order.isDelivered = true;
@@ -304,8 +310,35 @@ router.put('/:id', protect, adminOrMerchantiseMiddleware, async (req, res) => {
     
     // Populate the updated order before sending response
     await updatedOrder.populate('user', 'name email');
+
+    // ✅ Send email if status was updated to Shipped / Delivered / Cancelled
+    if (shouldSendStatusEmail) {
+      const items = order.orderItems.map(item => `
+        <p><strong>${item.name}</strong> - ${item.color}, ${item.size} (Qty: ${item.quantity})</p>
+      `).join("");
+
+      const statusMessages = {
+        Shipped: "Your order has been shipped and is on its way to you.",
+        Delivered: "Your order has been delivered. We hope you enjoy it!",
+        Cancelled: "Your order has been cancelled. If this was unexpected, please contact support.",
+      };
+
+      await sendMail({
+        to: order.user.email,
+        subject: `📦 Order ${status} - Raphaaa`,
+        message: `
+          <p>Hi ${order.user.name},</p>
+          <p>${statusMessages[status]}</p>
+          <p><strong>Order ID:</strong> ${order._id}</p>
+          <p><strong>Order Items:</strong></p>
+          ${items}
+          <p>Thank you for shopping with us!</p>
+          <p>Team Raphaaa</p>
+        `
+      });
+    }
     
-    console.log('Order status updated by', req.user.role, ':', updatedOrder._id, 'New status:', updatedOrder.status);
+    // console.log('Order status updated by', req.user.role, ':', updatedOrder._id, 'New status:', updatedOrder.status);
     res.json(updatedOrder);
   } catch (error) {
     console.error('Order status update error:', error);

@@ -88,7 +88,7 @@ if (process.env.NODE_ENV === 'development') {
 connectDB();
 
 app.get("/", (req, res) => {
-    res.send("Welcome tp Raphaaa API!!");
+    res.send("Welcome to Raphaaa API!!");
 });
 
 // API Routes 
