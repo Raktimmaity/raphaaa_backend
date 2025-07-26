@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const connectDB = require("./config/db");
+const axios = require("axios");
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const cartRoutes = require("./routes/cartRoutes");
@@ -124,6 +125,20 @@ app.use("/api/admin/products", productAdminRoutes);
 app.use("/api/admin/orders", adminOrderRoutes);
 // app.use("/api/merch", merchRoutes);
 
+// Health check endpoint
+app.get('/healthz', (req, res) => {
+  res.status(200).send('OK');
+});
+
+
 app.listen(PORT, () => {
     console.log(`Server is running on https://localhost:${PORT}`);
 });
+
+// Self-ping every 1 minute to prevent sleeping (Render free tier)
+setInterval(() => {
+  axios
+    .get("https://raphaaa-backend.onrender.com/healthz" || "http://localhost:9000/healthz")
+    .then(() => console.log("[SELF-PING] /healthz OK"))
+    .catch((err) => console.error("[SELF-PING ERROR]:", err.message));
+}, 60 * 1000); // every 1 minute
