@@ -33,6 +33,7 @@ const userAddressRoutes = require("./routes/userAddressRoutes");
 const policyRoutes = require("./routes/policyRoutes");
 const offerRoutes = require("./routes/offerRoutes");
 const wishlistRoutes = require("./routes/wishlistRoutes");
+// require("./emailScheduler");
 
 // Run every day at 7:00 PM IST
 cron.schedule("0 19 * * *", async () => {
@@ -139,6 +140,6 @@ app.listen(PORT, () => {
 setInterval(() => {
   axios
     .get("https://raphaaa-backend.onrender.com/healthz" || "http://localhost:9000/healthz")
-    .then(() => console.log("[SELF-PING] /healthz OK"))
+    .then(() => console.log("[SELF-PING] Success. Server responding OK."))
     .catch((err) => console.error("[SELF-PING ERROR]:", err.message));
 }, 60 * 1000); // every 1 minute
