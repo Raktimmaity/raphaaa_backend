@@ -65,6 +65,28 @@ router.post("/subscribe", async (req, res) => {
   }
 });
 
+router.post("/subscribe/push", async (req, res) => {
+  const { email, subscription } = req.body;
+
+  if (!email || !subscription?.endpoint) {
+    return res.status(400).json({ message: "Invalid subscription data" });
+  }
+
+  try {
+    const subscriber = await Subscriber.findOne({ email });
+    if (!subscriber) return res.status(404).json({ message: "Subscriber not found" });
+
+    subscriber.pushSubscription = subscription;
+    await subscriber.save();
+
+    res.status(200).json({ message: "Push subscription saved successfully" });
+  } catch (err) {
+    console.error("Push subscription error:", err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+
 // @route GET /api/unsubscribe/:email
 // @desc Unsubscribe from newsletter
 // @access Public

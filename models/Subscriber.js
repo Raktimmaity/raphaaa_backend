@@ -17,6 +17,13 @@ const subscriberSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  pushSubscription: {
+  endpoint: String,
+  keys: {
+    auth: String,
+    p256dh: String,
+  },
+},
 });
 
 module.exports = mongoose.model("Subscriber", subscriberSchema);

@@ -143,3 +143,10 @@ setInterval(() => {
     .then(() => console.log("[SELF-PING] Success. Server responding OK."))
     .catch((err) => console.error("[SELF-PING ERROR]:", err.message));
 }, 60 * 1000); // every 1 minute
+// const webpush = require("web-push");
+// const vapidKeys = webpush.generateVAPIDKeys();
+// console.log(vapidKeys);
+// {
+//   publicKey: 'BIfPA4HUUcJVRPAqn4NEAcE8Bzg9cYmLTVNqGYCY5SqJvPKjp6JPva2C2aTyXKcKoUrwbwjrj7puKNPHWIgdvls',
+//   privateKey: 'AevdtLtBPJhn062uTjiLqHjgpE7rKv4hwlr3Gku_dXI'
+// }
