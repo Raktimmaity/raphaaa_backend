@@ -142,7 +142,7 @@ setInterval(() => {
     .get("https://raphaaa-backend.onrender.com/healthz" || "http://localhost:9000/healthz")
     .then(() => console.log("[SELF-PING] Success. Server responding OK."))
     .catch((err) => console.error("[SELF-PING ERROR]:", err.message));
-}, 60 * 1000); // every 1 minute
+}, 10 * 60 * 1000); // every 1 minute
 // const webpush = require("web-push");
 // const vapidKeys = webpush.generateVAPIDKeys();
 // console.log(vapidKeys);
