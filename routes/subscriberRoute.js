@@ -113,5 +113,33 @@ router.get("/unsubscribe/:email", async (req, res) => {
   }
 });
 
+// @route GET /api/subscribers
+// @desc Get all subscribers (admin use)
+// @access Private (but currently public unless you add middleware)
+router.get("/subscribers", async (req, res) => {
+  try {
+    const allSubscribers = await Subscriber.find({ isSubscribed: true }).sort({ subscribedAt: -1 });
+    res.status(200).json(allSubscribers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// @route DELETE /api/subscribers/:id
+// @desc Delete a subscriber by ID
+// @access Private
+router.delete("/subscribers/:id", async (req, res) => {
+  try {
+    const deleted = await Subscriber.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: "Subscriber not found" });
+    res.status(200).json({ message: "Subscriber deleted" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error deleting subscriber" });
+  }
+});
+
+
 
 module.exports = router;
