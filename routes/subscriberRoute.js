@@ -118,7 +118,7 @@ router.get("/unsubscribe/:email", async (req, res) => {
 // @access Private (but currently public unless you add middleware)
 router.get("/subscribers", async (req, res) => {
   try {
-    const allSubscribers = await Subscriber.find({ isSubscribed: true }).sort({ subscribedAt: -1 });
+    const allSubscribers = await Subscriber.find().sort({ subscribedAt: -1 });
     res.status(200).json(allSubscribers);
   } catch (err) {
     console.error(err);
