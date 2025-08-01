@@ -3,6 +3,10 @@ const router = express.Router();
 const Offer = require("../models/offer");
 const Product = require("../models/Product");
 const { protect, admin } = require("../middleware/authMiddleware");
+const { sendMail } = require("../utils/sendMail"); // Assuming you already have this utility
+const Subscriber = require("../models/Subscriber");
+const Order = require("../models/Order");
+const User = require("../models/User");
 
 // Create offer
 router.post("/", protect, admin, async (req, res) => {
@@ -30,6 +34,37 @@ router.post("/", protect, admin, async (req, res) => {
     }
   ]
 );
+
+const sendInitialOfferEmails = async (offer) => {
+  const subscribers = await Subscriber.find({ isSubscribed: true });
+  const uniqueBuyerIds = await Order.distinct("user", {
+    "orderItems.productId": { $in: offer.productIds },
+  });
+  const buyers = await User.find({ _id: { $in: uniqueBuyerIds } });
+
+  const recipients = [...subscribers.map(s => s.email), ...buyers.map(b => b.email)];
+  const uniqueEmails = [...new Set(recipients)];
+
+  const formattedStart = new Date(offer.startDate).toLocaleDateString("en-GB", {
+    day: "numeric", month: "short", year: "numeric"
+  });
+  const formattedEnd = new Date(offer.endDate).toLocaleDateString("en-GB", {
+    day: "numeric", month: "short", year: "numeric"
+  });
+
+  const subject = `Upcoming Offer: ${offer.title}`;
+  const message = `
+    <h2>Get Ready for Our New Offer!</h2>
+    <p><strong>${offer.title}</strong> is launching soon with up to <strong>${offer.offerPercentage}% OFF</strong>.</p>
+    <p>Valid from <strong>${formattedStart}</strong> to <strong>${formattedEnd}</strong>.</p>
+    <p>Stay tuned and don't miss out!</p>
+  `;
+
+  for (const email of uniqueEmails) {
+    await sendMail({ to: email, subject, message });
+  }
+};
+await sendInitialOfferEmails(offer);
 
 
   res.status(201).json(offer);

@@ -9,7 +9,7 @@ const offerSchema = new mongoose.Schema({
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
   productIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
-  isActive: { type: Boolean, default: false }, // ✅ New field
+  isActive: { type: Boolean, default: true }, // ✅ New field
 }, { timestamps: true });
 
 module.exports = mongoose.model("Offer", offerSchema);
