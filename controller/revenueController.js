@@ -1,4 +1,5 @@
 const Order = require("../models/Order");
+const Product = require("../models/Product");
 
 // Common helper to calculate revenue
 const calculateRevenue = async (startDate) => {
@@ -66,6 +67,76 @@ exports.getTodayRevenue = async (req, res) => {
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: "Error fetching today's revenue" });
+  }
+};
+
+exports.getRevenueByPeriod = async (req, res) => {
+  try {
+    const { period } = req.params;
+    const now = new Date();
+    let startDate;
+
+    switch (period) {
+      case "daily":
+        startDate = new Date();
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case "weekly":
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case "monthly":
+        startDate = new Date(now);
+        startDate.setMonth(now.getMonth() - 1);
+        break;
+      case "yearly":
+        startDate = new Date(now);
+        startDate.setFullYear(now.getFullYear() - 1);
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid period" });
+    }
+
+    // Get all paid orders for the period
+    const paidOrders = await Order.find({
+      isPaid: true,
+      paidAt: { $gte: startDate },
+    });
+
+    const totalRevenue = paidOrders.reduce(
+      (acc, order) => acc + order.totalPrice,
+      0
+    );
+
+    const totalOrders = paidOrders.length;
+
+    // Gather all sold items
+    const allItems = paidOrders.flatMap((order) => order.orderItems);
+
+    // Group by name (fallback if productId is missing)
+    const productMap = new Map();
+
+    for (const item of allItems) {
+      const key = item.productId?.toString() || item.name;
+
+      if (productMap.has(key)) {
+        productMap.get(key).totalSold += item.quantity;
+      } else {
+        productMap.set(key, {
+          name: item.name || "Unknown",
+          category: "N/A",
+          price: item.price || 0,
+          totalSold: item.quantity,
+        });
+      }
+    }
+
+    const productsSold = Array.from(productMap.values());
+
+    res.json({ totalRevenue, totalOrders, productsSold });
+  } catch (err) {
+    console.error("Revenue fetch error:", err);
+    res.status(500).json({ message: "Error fetching revenue" });
   }
 };
 

@@ -298,47 +298,47 @@ router.get("/revenue/monthly", protect, getMonthlyRevenue);
 router.get("/revenue/yearly", protect, getYearlyRevenue);
 router.get("/revenue/today", protect, getTodayRevenue);
 
-router.get(
-  "/revenue/:period",
-  protect,
-  adminOrMerchantise,
-  async (req, res) => {
-    try {
-      const { period } = req.params;
+// router.get(
+//   "/revenue/:period",
+//   protect,
+//   adminOrMerchantise,
+//   async (req, res) => {
+//     try {
+//       const { period } = req.params;
 
-      const now = new Date();
-      let startDate;
+//       const now = new Date();
+//       let startDate;
 
-      if (period === "weekly") {
-        startDate = new Date(now.setDate(now.getDate() - 7));
-      } else if (period === "monthly") {
-        startDate = new Date(now.setMonth(now.getMonth() - 1));
-      } else if (period === "yearly") {
-        startDate = new Date(now.setFullYear(now.getFullYear() - 1));
-      } else if (period === "daily") {
-        startDate = new Date();
-        startDate.setHours(0, 0, 0, 0);
-      } else {
-        return res.status(400).json({ message: "Invalid period" });
-      }
+//       if (period === "weekly") {
+//         startDate = new Date(now.setDate(now.getDate() - 7));
+//       } else if (period === "monthly") {
+//         startDate = new Date(now.setMonth(now.getMonth() - 1));
+//       } else if (period === "yearly") {
+//         startDate = new Date(now.setFullYear(now.getFullYear() - 1));
+//       } else if (period === "daily") {
+//         startDate = new Date();
+//         startDate.setHours(0, 0, 0, 0);
+//       } else {
+//         return res.status(400).json({ message: "Invalid period" });
+//       }
 
-      const orders = await Order.find({
-        isPaid: true,
-        paidAt: { $gte: startDate },
-      });
+//       const orders = await Order.find({
+//         isPaid: true,
+//         paidAt: { $gte: startDate },
+//       });
 
-      const totalRevenue = orders.reduce(
-        (acc, order) => acc + order.totalPrice,
-        0
-      );
+//       const totalRevenue = orders.reduce(
+//         (acc, order) => acc + order.totalPrice,
+//         0
+//       );
 
-      res.json({ totalRevenue, totalOrders: orders.length });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Error fetching revenue" });
-    }
-  }
-);
+//       res.json({ totalRevenue, totalOrders: orders.length });
+//     } catch (err) {
+//       console.error(err);
+//       res.status(500).json({ message: "Error fetching revenue" });
+//     }
+//   }
+// );
 
 router.get("/revenue/:period", protect, getRevenueByPeriod);
 
