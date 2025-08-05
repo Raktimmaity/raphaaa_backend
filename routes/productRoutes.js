@@ -328,7 +328,7 @@ router.get("/similar/:id", async (req, res) => {
       _id: { $ne: id }, // Exclude the current product ID
       gender: product.gender,
       category: product.category,
-    }).limit(4);
+    }).limit(50);
 
     res.json(similarProducts);
   } catch (error) {
