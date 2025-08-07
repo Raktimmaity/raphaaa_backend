@@ -51,6 +51,17 @@ router.get("/all", async (req, res) => {
   }
 });
 
+// @route   GET /api/collabs/active
+// @desc    Check if any collab is currently published
+router.get("/active", async (req, res) => {
+  try {
+    const isActive = await Collab.exists({ isPublished: true });
+    res.json({ isActive: !!isActive });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to check active collab", error: err.message });
+  }
+});
+
 // @route   GET /api/collabs/:id
 // @desc    Get a single collab by ID
 router.get("/:id", async (req, res) => {
@@ -118,6 +129,8 @@ router.get("/footballer/:slug", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch footballer details", error: err.message });
   }
 });
+
+
 
 
 module.exports = router;
