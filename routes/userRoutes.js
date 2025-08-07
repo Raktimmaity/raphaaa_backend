@@ -416,5 +416,26 @@ router.post("/validate-coupon", protect, async (req, res) => {
   }
 });
 
+// @route GET /api/users/hierarchy
+// @desc Get user hierarchy for admin > merchantise > marketing
+// @access Public/View Only
+router.get("/hierarchy", async (req, res) => {
+  try {
+    const admins = await User.find({ role: "admin" }).select("name email photo");
+    const merchantisers = await User.find({ role: "merchantise" }).select("name email photo");
+    const marketing = await User.find({ role: "marketing" }).select("name email photo");
+
+    res.json({
+      admin: admins,
+      merchantise: merchantisers,
+      marketing: marketing,
+    });
+  } catch (err) {
+    console.error("Hierarchy fetch error:", err);
+    res.status(500).json({ message: "Failed to fetch hierarchy" });
+  }
+});
+
+
 
 module.exports = router;
