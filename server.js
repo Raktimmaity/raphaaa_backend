@@ -37,6 +37,7 @@ const wishlistRoutes = require("./routes/wishlistRoutes");
 const { sendScheduledEmails } = require("./offerScheduler");
 sendScheduledEmails(); // Run once on startup
 const metaOptionRoutes = require("./routes/metaOptionRoutes");
+const campaignsRoutes = require("./routes/campaignRoutes");
 
 // Run every day at 7:00 PM IST
 cron.schedule("0 19 * * *", async () => {
@@ -122,6 +123,7 @@ app.use("/api/user/addresses", userAddressRoutes);
 app.use("/api/settings/policy", policyRoutes);
 app.use("/api/offers", offerRoutes);
 app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/campaigns", campaignsRoutes);
 
 // Admin routes
 app.use("/api/admin/users", adminRoutes);

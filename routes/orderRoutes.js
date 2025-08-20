@@ -60,7 +60,8 @@ const {
 } = require("../controller/revenueController");
 
 const { getRevenueByPeriod } = require("../controller/orderController");
-const { sendMail } = require("../utils/sendMail");
+const { sendMail } = require("../utils/sendMail");  
+const Collab = require("../models/Collab");
 
 // @desc    Create Cash on Delivery Order
 // @route   POST /api/orders/cod
@@ -118,6 +119,27 @@ router.post("/cod", protect, async (req, res) => {
 
     const createdOrder = await order.save();
 
+    // 🔹 Check if there's an active collab and if any product matches
+    let gifHtml = "";
+    const activeCollab = await Collab.findOne({ isPublished: true }).populate("collaborators.products");
+
+    if (activeCollab) {
+      let productMatch = false;
+      for (const item of orderItems) {
+        for (const collaborator of activeCollab.collaborators) {
+          if (collaborator.products.some(prod => prod._id.toString() === item.productId.toString())) {
+            productMatch = true;
+            break;
+          }
+        }
+        if (productMatch) break;
+      }
+
+      if (productMatch) {
+        gifHtml = `<p><img src="https://i.gifer.com/ZIb4.gif" alt="Footballer GIF" style="max-width:100%;"/></p>`;
+      }
+    }
+
     // Send confirmation email
     try {
       const userEmail = req.user.email;
@@ -142,6 +164,7 @@ router.post("/cod", protect, async (req, res) => {
       <p>Hi ${req.user.name},</p>
       <p>Thank you for shopping with us. Your Cash on Delivery order has been placed successfully on <strong>${orderDate}</strong>.</p>
       ${message}
+      ${gifHtml}
       <p>We'll notify you once your order is on the way!</p>
       <p>Love,<br/>Team Raphaaa</p>
     `,

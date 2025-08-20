@@ -7,6 +7,7 @@ const bcrypt = require("bcryptjs");
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 const sendSMS = require("../utils/sendSMS");
+const { sendMail } = require("../utils/sendMail");
 
 // @route POST /api/users/register
 // @desc Register a new User
@@ -34,6 +35,22 @@ router.post("/register", async (req, res) => {
       },
     });
     await user.save();
+
+    // ✅ Send welcome email
+    try {
+      await sendMail({
+        to: user.email,
+        subject: "🎉 Welcome to Raphaaa!",
+        message: `
+      <p>Hi ${user.name},</p>
+      <p>Welcome to <strong>Raphaaa</strong>! We're thrilled to have you join our community.</p>
+      <p>Start shopping and enjoy your experience!</p>
+      <p>Love,<br/>Team Raphaaa</p>
+    `,
+      });
+    } catch (err) {
+      console.error("Failed to send welcome email:", err.message);
+    }
 
     // Create JWT Payload
     const payload = { user: { id: user._id, role: user.role } };
@@ -412,7 +429,9 @@ router.post("/validate-coupon", protect, async (req, res) => {
   ) {
     return res.json({ valid: true, discount: user.coupon.discount });
   } else {
-    return res.status(400).json({ valid: false, message: "Invalid or expired coupon" });
+    return res
+      .status(400)
+      .json({ valid: false, message: "Invalid or expired coupon" });
   }
 });
 
@@ -421,9 +440,15 @@ router.post("/validate-coupon", protect, async (req, res) => {
 // @access Public/View Only
 router.get("/hierarchy", async (req, res) => {
   try {
-    const admins = await User.find({ role: "admin" }).select("name email photo");
-    const merchantisers = await User.find({ role: "merchantise" }).select("name email photo");
-    const marketing = await User.find({ role: "marketing" }).select("name email photo");
+    const admins = await User.find({ role: "admin" }).select(
+      "name email photo"
+    );
+    const merchantisers = await User.find({ role: "merchantise" }).select(
+      "name email photo"
+    );
+    const marketing = await User.find({ role: "marketing" }).select(
+      "name email photo"
+    );
 
     res.json({
       admin: admins,
@@ -435,7 +460,5 @@ router.get("/hierarchy", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch hierarchy" });
   }
 });
-
-
 
 module.exports = router;
