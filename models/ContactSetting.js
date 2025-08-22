@@ -11,6 +11,8 @@ const contactSettingSchema = new mongoose.Schema({
   gmail: { type: String, default: "" },
   showPhone: { type: Boolean, default: false },
   phone: { type: String, default: "" },
+  showTopText: {type: Boolean, default: false},
+  topText: { type: String, default: "" },
 }, { timestamps: true });
 
 module.exports = mongoose.model("ContactSetting", contactSettingSchema);

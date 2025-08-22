@@ -210,7 +210,7 @@ const { sendMail } = require("../utils/sendMail");
 
 // Middleware to check if user is admin or merchantise
 const adminOrMerchantiseMiddleware = (req, res, next) => {
-  if (req.user && (req.user.role === 'admin' || req.user.role === 'merchantise' || req.user.role === "delivery_boy")) {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'merchantise' || req.user.role === "delivery_boy" || req.user.role === "marketing")) {
     next();
   } else {
     res.status(403).json({ message: 'Not authorized as admin or merchantise' });
@@ -248,6 +248,11 @@ router.get('/', protect, adminOrMerchantiseMiddleware, async (req, res) => {
         .populate('orderItems.productId', 'name image')
         .sort({ createdAt: -1 });
     } else if(req.user.role === 'delivery_boy') {
+      orders = await Order.find({})
+      .populate('user', 'name email')
+      .populate('orderItems.productId', 'name image')
+      .sort({ createdAt: -1 });
+    } else if(req.user.role === 'marketing') {
       orders = await Order.find({})
       .populate('user', 'name email')
       .populate('orderItems.productId', 'name image')

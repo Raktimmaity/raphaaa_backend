@@ -7,8 +7,8 @@ const Product = require("../models/Product");
 // @desc    Create new collab
 router.post("/", async (req, res) => {
   try {
-    const { title, collaborators, isPublished, image } = req.body;
-    const collab = await Collab.create({ title, collaborators, isPublished, image });
+    const { title, description, collaborators, isPublished, image } = req.body;
+    const collab = await Collab.create({ title, description, collaborators, isPublished, image });
     res.status(201).json(collab);
   } catch (err) {
     res.status(500).json({ message: "Failed to create collab", error: err.message });

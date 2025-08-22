@@ -270,6 +270,30 @@ router.get("/my-orders", protect, async (req, res) => {
   }
 });
 
+// @desc    Get all orders (admin/marketing)
+// @route   GET /api/orders
+// @access  Private (admin or marketing)
+router.get("/", protect, async (req, res) => {
+  try {
+    const role = req.user?.role;
+    if (role !== "admin" && role !== "marketing") {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    const orders = await Order.find({})
+      .populate("user", "name email")               // <-- ensures o.user.email exists
+      .populate("orderItems.productId", "name image")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json(orders);
+  } catch (error) {
+    console.error("Fetch all orders error:", error);
+    res.status(500).json({ message: "Failed to fetch orders", error: error.message });
+  }
+});
+
+
 // @desc    Get order by ID
 // @route   GET /api/orders/:id
 // @access  Private
@@ -320,6 +344,31 @@ router.get("/revenue/weekly", protect, getWeeklyRevenue);
 router.get("/revenue/monthly", protect, getMonthlyRevenue);
 router.get("/revenue/yearly", protect, getYearlyRevenue);
 router.get("/revenue/today", protect, getTodayRevenue);
+
+// @desc    Get all orders (admin/marketing)
+// @route   GET /api/orders
+// @access  Private (admin or marketing)
+router.get("/", protect, async (req, res) => {
+  try {
+    // gate: only admin or marketing
+    const role = req.user?.role;
+    if (role !== "admin" && role !== "marketing") {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    const orders = await Order.find({})
+      .populate("user", "name email")               // <-- ensure email is present
+      .populate("orderItems.productId", "name image")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json(orders);
+  } catch (error) {
+    console.error("Fetch all orders error:", error);
+    res.status(500).json({ message: "Failed to fetch orders", error: error.message });
+  }
+});
+
 
 // router.get(
 //   "/revenue/:period",
