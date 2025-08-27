@@ -136,7 +136,7 @@ router.post("/cod", protect, async (req, res) => {
       }
 
       if (productMatch) {
-        gifHtml = `<p><img src="https://i.gifer.com/ZIb4.gif" alt="Footballer GIF" style="max-width:100%;"/></p>`;
+        gifHtml = `<p><img src="https://i.gifer.com/Au8u.gif" alt="Footballer GIF" style="max-width:100%;"/></p>`;
       }
     }
 
