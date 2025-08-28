@@ -8,6 +8,14 @@ const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 const sendSMS = require("../utils/sendSMS");
 const { sendMail } = require("../utils/sendMail");
+const emailOtps = new Map(); // key: email, val: { otp, expires: Date }
+const generateEmailOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+// const ALLOWED_EMAILS = new Set([
+//   "test@example.com",
+//   "demo@raphaaa.com",
+//   // add more...
+// ]);
 
 // @route POST /api/users/register
 // @desc Register a new User
@@ -458,6 +466,133 @@ router.get("/hierarchy", async (req, res) => {
   } catch (err) {
     console.error("Hierarchy fetch error:", err);
     res.status(500).json({ message: "Failed to fetch hierarchy" });
+  }
+});
+
+// Admin: reset ANY user's password and email it to them
+router.post("/reset-password", protect, async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    // Generate a strong password if admin didn't provide one
+    const generated = (() => {
+      const chars =
+        "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";
+      let out = "";
+      for (let i = 0; i < 12; i++) out += chars[Math.floor(Math.random() * chars.length)];
+      return out;
+    })();
+
+    const finalPass = (newPassword || generated).trim();
+    if (finalPass.length < 6) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Set & save — will be hashed by pre-save hook in User model
+    user.password = finalPass;
+    await user.save(); // hashes via userSchema.pre('save') :contentReference[oaicite:7]{index=7}
+
+    // Email the new password
+    try {
+      await sendMail({
+        to: user.email,
+        subject: "Your Raphaaa password has been reset",
+        message: `
+          <p>Hi ${user.name || "there"},</p>
+          <p>Your password has been reset by an administrator.</p>
+          <p><strong>New Password:</strong> ${finalPass}</p>
+          <p>You can sign in and change it from your profile settings.</p>
+          <p>– Team Raphaaa</p>
+        `,
+      }); // uses your nodemailer transport setup :contentReference[oaicite:8]{index=8}
+    } catch (mailErr) {
+      console.error("Failed to send password mail:", mailErr);
+      // Still return success for reset, but inform about email failure
+      return res.status(200).json({
+        message:
+          "Password reset. Failed to send email—please share the new password manually.",
+        tempPassword: finalPass,
+      });
+    }
+
+    return res.status(200).json({
+      message: "Password reset and emailed to the user.",
+      // (optional) expose tempPassword for admin UI if needed:
+      // tempPassword: finalPass,
+    });
+  } catch (error) {
+    console.error("Admin reset password error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
+// Send 6-digit OTP to email (pre-registration)
+router.post("/send-email-otp", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    // If you want to enforce "hard coded email id" usage:
+    // if (ALLOWED_EMAILS.size && !ALLOWED_EMAILS.has(email)) {
+    //   return res.status(403).json({ message: "Email not allowed for OTP" });
+    // }
+
+    const otp = generateEmailOTP();
+    const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 min validity
+    emailOtps.set(email, { otp, expires });
+
+    await sendMail({
+      to: email,
+      subject: "Your Raphaaa verification code",
+      message: `
+        <p>Use this 6-digit code to verify your email:</p>
+        <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px;">${otp}</p>
+        <p>This code will expire in 10 minutes.</p>
+      `,
+    });
+
+    return res.json({ message: "OTP sent to email" });
+  } catch (err) {
+    console.error("send-email-otp error:", err);
+    return res.status(500).json({ message: "Failed to send OTP" });
+  }
+});
+
+// Verify email OTP (pre-registration)
+router.post("/verify-email-otp", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
+    }
+
+    const record = emailOtps.get(email);
+    if (!record) {
+      return res.status(400).json({ message: "No OTP found. Please request again." });
+    }
+
+    const now = new Date();
+    if (record.otp !== otp || now > record.expires) {
+      return res.status(400).json({ message: "Incorrect or expired OTP" });
+    }
+
+    // success -> clear the OTP so it can't be reused
+    emailOtps.delete(email);
+    return res.json({ message: "Email verified" });
+  } catch (err) {
+    console.error("verify-email-otp error:", err);
+    return res.status(500).json({ message: "Verification failed" });
   }
 });
 
