@@ -259,7 +259,7 @@ router.get('/', protect, adminOrMerchantiseMiddleware, async (req, res) => {
       .sort({ createdAt: -1 });
     }
 
-    console.log(`${req.user.role} fetching orders, found:`, orders.length);
+    // console.log(`${req.user.role} fetching orders, found:`, orders.length);
     res.json(orders);
   } catch (error) {
     console.error('Fetch all orders error:', error);

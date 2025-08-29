@@ -63,7 +63,7 @@ const protect = async (req, res, next) => {
             }
             
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            console.log('Decoded token:', decoded); // Debug logging
+            // console.log('Decoded token:', decoded); // Debug logging
             
             // Handle different token structures
             let userId;
